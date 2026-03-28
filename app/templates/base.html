@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PMTCT Triple Elimination{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "moh-green": "#006b3f",
+                        "moh-green-dark": "#004f2f",
+                        "who-blue": "#0072bc",
+                        "moh-gold": "#f0b429"
+                    }
+                }
+            }
+        };
+    </script>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="/static/css/custom.css">
+    <meta name="csrf-token" content="{{ csrf_token or '' }}">
+    {% block head %}{% endblock %}
+</head>
+<body
+    class="min-h-full bg-slate-50 text-slate-900"
+    data-authenticated="{{ 'true' if authenticated_page else 'false' }}"
+    data-user-role="{{ user_role or '' }}"
+>
+    {% if show_nav is not defined or show_nav %}
+    <header class="border-b border-slate-200 bg-white shadow-sm">
+        <div class="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <a href="/dashboard" class="text-2xl font-semibold tracking-tight text-moh-green">
+                        PMTCT Triple Elimination
+                    </a>
+                    <p class="text-sm text-slate-500">
+                        Uganda Ministry of Health analytics workspace
+                    </p>
+                </div>
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+                    {% if user_name %}
+                    <div class="text-sm text-slate-600">
+                        Signed in as <span class="font-medium text-slate-900">{{ user_name }}</span>
+                        {% if user_role %}
+                        <span class="ml-2 rounded-full bg-slate-100 px-2 py-1 text-xs uppercase tracking-wide text-slate-600">{{ user_role }}</span>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    <form id="logout-form" method="post" action="/auth/logout">
+                        {% if csrf_token %}
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                        {% endif %}
+                        <button
+                            type="submit"
+                            class="inline-flex items-center justify-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+                        >
+                            Logout
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <nav class="flex flex-wrap gap-2">
+                <a href="/dashboard" class="nav-pill {% if active_page == 'dashboard' %}nav-pill-active{% endif %}">
+                    Dashboard
+                </a>
+                <a href="/indicators" class="nav-pill {% if active_page == 'indicators' %}nav-pill-active{% endif %}">
+                    Indicators
+                </a>
+                <a href="/cascade/hiv" class="nav-pill {% if active_page == 'cascade' and cascade_type == 'hiv' %}nav-pill-active{% endif %}">
+                    HIV Cascade
+                </a>
+                <a href="/cascade/hbv" class="nav-pill {% if active_page == 'cascade' and cascade_type == 'hbv' %}nav-pill-active{% endif %}">
+                    HBV Cascade
+                </a>
+                <a href="/cascade/syphilis" class="nav-pill {% if active_page == 'cascade' and cascade_type == 'syphilis' %}nav-pill-active{% endif %}">
+                    Syphilis Cascade
+                </a>
+                <a href="/supply" class="nav-pill {% if active_page == 'supply' %}nav-pill-active{% endif %}">
+                    Supply Chain
+                </a>
+                <a href="/data-quality" class="nav-pill {% if active_page == 'data_quality' %}nav-pill-active{% endif %}">
+                    Data Quality
+                </a>
+                {% if 'use_ai_insights' in user_permissions %}
+                <a href="/insights" class="nav-pill {% if active_page == 'insights' %}nav-pill-active{% endif %}">
+                    AI Insights
+                </a>
+                {% endif %}
+                <a href="/alerts" class="nav-pill {% if active_page == 'alerts' %}nav-pill-active{% endif %}">
+                    Alerts
+                </a>
+                <a href="/trends" class="nav-pill {% if active_page == 'trends' %}nav-pill-active{% endif %}">
+                    Trends
+                </a>
+            </nav>
+        </div>
+    </header>
+    {% endif %}
+
+    <main class="py-6">
+        <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    <div id="global-spinner" class="htmx-indicator fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/45">
+        <div class="flex items-center gap-3 rounded-2xl bg-white px-5 py-4 shadow-xl">
+            <span class="inline-block h-6 w-6 animate-spin rounded-full border-4 border-moh-green border-t-transparent"></span>
+            <span class="text-sm font-medium text-slate-700">Loading analytics…</span>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

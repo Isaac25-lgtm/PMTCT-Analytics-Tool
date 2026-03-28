@@ -1,0 +1,181 @@
+{% extends "base.html" %}
+
+{% set show_nav = false %}
+
+{% block title %}Login | PMTCT Triple Elimination{% endblock %}
+
+{% block content %}
+<div class="flex min-h-[80vh] items-center justify-center">
+    <div class="grid w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl lg:grid-cols-[1.05fr_0.95fr]">
+        <section class="hidden bg-gradient-to-br from-moh-green via-moh-green-dark to-who-blue px-10 py-12 text-white lg:block">
+            <p class="text-sm uppercase tracking-[0.3em] text-white/70">Uganda MoH</p>
+            <h1 class="mt-6 text-4xl font-semibold leading-tight">
+                PMTCT Triple Elimination analytics for rapid district and facility review.
+            </h1>
+            <p class="mt-6 max-w-md text-base text-white/80">
+                Connect directly to DHIS2, keep credentials only in server-side session memory, and explore HIV, syphilis, hepatitis B, and systems indicators without storing data persistently.
+            </p>
+            <dl class="mt-10 grid gap-6 text-sm text-white/85">
+                <div>
+                    <dt class="font-semibold text-white">Stateless by design</dt>
+                    <dd class="mt-1 text-white/75">Session cookie expires on browser close and credentials stay in memory only.</dd>
+                </div>
+                <div>
+                    <dt class="font-semibold text-white">Built for routine review</dt>
+                    <dd class="mt-1 text-white/75">Weekly and monthly periods support SYS-03 and the broader program scorecard workflow.</dd>
+                </div>
+                <div>
+                    <dt class="font-semibold text-white">Fast interactions</dt>
+                    <dd class="mt-1 text-white/75">HTMX partial updates keep dashboards responsive without redefining the backend.</dd>
+                </div>
+            </dl>
+        </section>
+
+        <section class="px-6 py-10 sm:px-10">
+            <div class="max-w-md">
+                <p class="text-sm font-medium uppercase tracking-[0.25em] text-moh-green">Secure DHIS2 Login</p>
+                <h2 class="mt-3 text-3xl font-semibold text-slate-900">Connect your session</h2>
+                <p class="mt-2 text-sm text-slate-500">
+                    Use your DHIS2 username and password or a personal access token.
+                </p>
+
+                {% if session_expired %}
+                <div class="mt-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                    Your browser session expired. Please sign in again.
+                </div>
+                {% endif %}
+
+                <div id="login-error" class="mt-6 hidden rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700"></div>
+
+                <form id="login-form" class="mt-8 space-y-5">
+                    <div>
+                        <label for="dhis2_url" class="form-label">DHIS2 instance URL</label>
+                        <input id="dhis2_url" name="dhis2_url" type="url" required value="{{ default_dhis2_url }}" class="form-input">
+                    </div>
+
+                    <fieldset>
+                        <legend class="form-label">Authentication method</legend>
+                        <div class="mt-2 grid grid-cols-2 gap-3">
+                            <label class="auth-card">
+                                <input type="radio" name="auth_method" value="basic" checked class="sr-only">
+                                <span class="auth-card-title">Username / Password</span>
+                                <span class="auth-card-copy">Use your routine DHIS2 credentials.</span>
+                            </label>
+                            <label class="auth-card">
+                                <input type="radio" name="auth_method" value="pat" class="sr-only">
+                                <span class="auth-card-title">Personal Access Token</span>
+                                <span class="auth-card-copy">Use a pre-generated `d2pat_...` token.</span>
+                            </label>
+                        </div>
+                    </fieldset>
+
+                    <div id="basic-fields" class="space-y-5">
+                        <div>
+                            <label for="username" class="form-label">Username</label>
+                            <input id="username" name="username" type="text" autocomplete="username" class="form-input">
+                        </div>
+                        <div>
+                            <label for="password" class="form-label">Password</label>
+                            <input id="password" name="password" type="password" autocomplete="current-password" class="form-input">
+                        </div>
+                    </div>
+
+                    <div id="pat-fields" class="hidden space-y-2">
+                        <div>
+                            <label for="pat_token" class="form-label">Personal access token</label>
+                            <input id="pat_token" name="pat_token" type="password" class="form-input" placeholder="d2pat_...">
+                        </div>
+                        <p class="text-xs text-slate-500">
+                            Generate a token from your DHIS2 profile if your deployment supports PAT authentication.
+                        </p>
+                    </div>
+
+                    <button id="login-submit" type="submit" class="inline-flex w-full items-center justify-center rounded-full bg-moh-green px-5 py-3 text-sm font-semibold text-white transition hover:bg-moh-green-dark disabled:cursor-not-allowed disabled:opacity-70">
+                        <span id="login-submit-text">Connect to DHIS2</span>
+                    </button>
+                </form>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(() => {
+    const form = document.getElementById("login-form");
+    const errorBox = document.getElementById("login-error");
+    const submitButton = document.getElementById("login-submit");
+    const submitText = document.getElementById("login-submit-text");
+    const basicFields = document.getElementById("basic-fields");
+    const patFields = document.getElementById("pat-fields");
+
+    function setLoading(isLoading) {
+        submitButton.disabled = isLoading;
+        submitText.textContent = isLoading ? "Connecting..." : "Connect to DHIS2";
+    }
+
+    function showError(message) {
+        errorBox.textContent = message;
+        errorBox.classList.remove("hidden");
+    }
+
+    function clearError() {
+        errorBox.classList.add("hidden");
+        errorBox.textContent = "";
+    }
+
+    function syncMethodState() {
+        const method = form.querySelector('input[name="auth_method"]:checked').value;
+        const usePat = method === "pat";
+        basicFields.classList.toggle("hidden", usePat);
+        patFields.classList.toggle("hidden", !usePat);
+    }
+
+    form.querySelectorAll('input[name="auth_method"]').forEach((input) => {
+        input.addEventListener("change", syncMethodState);
+    });
+    syncMethodState();
+
+    form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        clearError();
+        setLoading(true);
+
+        const formData = new FormData(form);
+        const authMethod = formData.get("auth_method");
+        const payload = {
+            dhis2_url: formData.get("dhis2_url"),
+            auth_method: authMethod
+        };
+
+        if (authMethod === "basic") {
+            payload.username = formData.get("username");
+            payload.password = formData.get("password");
+        } else {
+            payload.pat_token = formData.get("pat_token");
+        }
+
+        try {
+            const response = await fetch("/auth/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (!response.ok) {
+                showError(data.detail || "Login failed. Please verify your DHIS2 details.");
+                return;
+            }
+
+            window.location.href = "/dashboard";
+        } catch (error) {
+            showError("Unable to reach the server. Please check the DHIS2 URL and try again.");
+        } finally {
+            setLoading(false);
+        }
+    });
+})();
+</script>
+{% endblock %}

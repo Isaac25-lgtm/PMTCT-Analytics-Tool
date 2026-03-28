@@ -1,0 +1,36 @@
+# Uganda District Population Data
+# Source: UBOS (Uganda Bureau of Statistics)
+#
+# expected_pregnancies = population × 0.05
+#
+# TODO: User must populate with actual UBOS data for each district.
+# This file provides the structure; values are placeholders.
+
+version: "1.0"
+source: "UBOS"
+year: 2024
+fertility_rate: 0.05  # Expected pregnancies as fraction of population
+
+# Districts keyed by DHIS2 org unit UID
+# Format:
+#   <org_unit_uid>:
+#     name: <district_name>
+#     population: <total_population>
+#     expected_pregnancies: <population × 0.05>
+
+districts:
+  # Example structure - replace with actual UBOS data
+  # Use actual DHIS2 org unit UIDs as keys
+  PLACEHOLDER_DISTRICT_UID:
+    name: "Example District"
+    population: 500000
+    expected_pregnancies: 25000
+
+# Regions (for aggregation)
+regions: {}
+
+# National
+national:
+  name: "Uganda"
+  population: 45000000
+  expected_pregnancies: 2250000

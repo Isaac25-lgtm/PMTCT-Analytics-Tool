@@ -1,0 +1,51 @@
+<div class="space-y-5">
+    <div class="card-panel">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">{{ org_unit_name or org_unit_uid }}</h2>
+                <p class="mt-1 text-sm text-slate-500">{{ period }} · {{ valid_indicators }} of {{ total_indicators }} indicators valid</p>
+            </div>
+            <div class="status-badge status-success">{{ indicators_meeting_target }} meeting target</div>
+        </div>
+    </div>
+
+    {% for group in grouped_results %}
+    <section class="card-panel overflow-hidden">
+        <div class="border-b border-slate-200 px-1 pb-4">
+            <h3 class="text-lg font-semibold text-slate-900">{{ group.name }}</h3>
+        </div>
+        <div class="divide-y divide-slate-200">
+            {% for result in group.results %}
+            <div class="flex flex-col gap-4 px-1 py-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                    <div class="font-medium text-slate-900">{{ result.indicator_name }}</div>
+                    <div class="mt-1 text-xs text-slate-500">{{ result.indicator_id }}</div>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                    <span class="rounded-full bg-slate-100 px-3 py-1">
+                        {% if result.numerator_value is not none %}
+                            {{ result.numerator_value|round(1) }}
+                            {% if result.denominator_value is not none %}/ {{ result.denominator_value|round(1) }}{% endif %}
+                        {% else %}
+                            No numerator / denominator
+                        {% endif %}
+                    </span>
+                    <span class="text-lg font-semibold {% if result.meets_target %}text-emerald-700{% elif result.is_valid %}text-slate-900{% else %}text-slate-400{% endif %}">
+                        {{ result.formatted_result }}
+                    </span>
+                    {% if result.target is not none %}
+                        {% if result.meets_target %}
+                        <span class="status-badge status-success">≥ {{ result.target }}%</span>
+                        {% else %}
+                        <span class="status-badge status-danger">&lt; {{ result.target }}%</span>
+                        {% endif %}
+                    {% elif not result.is_valid %}
+                        <span class="status-badge status-unknown">{{ result.error_message or "No data" }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+</div>

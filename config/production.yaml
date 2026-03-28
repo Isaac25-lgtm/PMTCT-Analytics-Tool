@@ -1,0 +1,49 @@
+# =============================================================================
+# Production Configuration Reference
+# =============================================================================
+# This file documents recommended production values. Sensitive values must still
+# come from environment variables or the Render dashboard.
+
+app:
+  env: production
+  debug: false
+
+logging:
+  level: INFO
+  format: json
+
+session:
+  timeout_minutes: 60
+
+cache:
+  enabled: true
+  max_size: 10000
+  ttl:
+    metadata: 3600
+    hierarchy: 3600
+    aggregate: 300
+    indicators: 300
+    trends: 600
+    insights: 900
+    data_quality: 300
+    alerts: 300
+
+connection_pool:
+  max_connections: 100
+  max_keepalive: 20
+  keepalive_expiry: 30
+  connect_timeout: 10
+  read_timeout: 120
+  write_timeout: 30
+  pool_timeout: 30
+
+security:
+  csrf_enabled: true
+  rate_limit_enabled: true
+  audit_enabled: true
+
+llm:
+  provider: anthropic
+  model: set-via-LLM_MODEL-env
+  max_tokens: 2048
+  temperature: 0.3

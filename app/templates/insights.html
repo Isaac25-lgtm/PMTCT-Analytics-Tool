@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+
+{% set active_page = "insights" %}
+
+{% block title %}AI Insights | PMTCT Triple Elimination{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <section class="card-panel overflow-hidden">
+        <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.25em] text-moh-green">Prompt 11 insights</p>
+                <h1 class="mt-3 text-3xl font-semibold text-slate-900">AI-assisted programme interpretation</h1>
+                <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+                    Generate narrative insights, recommendations, executive summaries, and grounded Q&amp;A using only the current request context. This page is intentionally anchored to monthly periods so it stays aligned with the live Prompt 10 alert engine.
+                </p>
+            </div>
+            <div class="rounded-3xl border border-sky-100 bg-sky-50/80 p-5">
+                <h2 class="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700">Guardrails</h2>
+                <p class="mt-3 text-sm leading-6 text-sky-900">
+                    Insights are advisory only. The AI layer has no cross-session memory, sees only the current indicator, alert, and data-quality context, and falls back to rule-based text when no LLM provider is configured.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="card-panel">
+        <form id="insight-filter-form" class="grid gap-5 xl:grid-cols-6">
+            <input type="hidden" name="include_trend" value="true">
+            <div class="xl:col-span-2">
+                <label for="insight-org-unit" class="form-label">Organisation unit</label>
+                <select id="insight-org-unit" name="org_unit" class="form-select" required>
+                    {% for org_unit in org_units %}
+                    <option value="{{ org_unit.id }}" {% if org_unit.id == selected_org_unit %}selected{% endif %}>{{ org_unit.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="insight-period" class="form-label">Monthly period</label>
+                <select id="insight-period" name="period" class="form-select" required>
+                    {% for period in periods %}
+                    <option value="{{ period.id }}" {% if period.id == selected_period %}selected{% endif %}>{{ period.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="insight-history-depth" class="form-label">History window</label>
+                <select id="insight-history-depth" name="history_depth" class="form-select">
+                    {% for option in history_depth_options %}
+                    <option value="{{ option.id }}" {% if option.id == selected_history_depth %}selected{% endif %}>{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="xl:col-span-2">
+                <label for="insight-indicator" class="form-label">Indicator</label>
+                <select id="insight-indicator" name="indicator_id" class="form-select">
+                    {% for indicator in indicators %}
+                    <option value="{{ indicator.id }}" {% if indicator.id == selected_indicator %}selected{% endif %}>
+                        {{ indicator.id }} · {{ indicator.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </form>
+    </section>
+
+    <section class="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-slate-900">Executive summary</h2>
+                <button
+                    type="button"
+                    class="primary-button"
+                    hx-get="/api/insights/htmx/executive-summary"
+                    hx-include="#insight-filter-form"
+                    hx-target="#executive-summary-panel"
+                    hx-indicator="#global-spinner"
+                >
+                    Generate summary
+                </button>
+            </div>
+            <div id="executive-summary-panel" class="card-panel text-center">
+                <h3 class="text-xl font-semibold text-slate-900">Ready for review</h3>
+                <p class="mt-2 text-sm text-slate-500">Select a monthly period and generate an executive summary.</p>
+            </div>
+        </div>
+
+        <div class="card-panel">
+            <div class="flex items-center justify-between">
+                <div>
+                    <p class="text-sm font-semibold uppercase tracking-[0.2em] text-moh-green">Ask a question</p>
+                    <h2 class="mt-2 text-2xl font-semibold text-slate-900">Current-session Q&amp;A</h2>
+                </div>
+            </div>
+            <form
+                class="mt-4 space-y-4"
+                hx-post="/api/insights/htmx/qa"
+                hx-include="#insight-filter-form"
+                hx-target="#qa-response-panel"
+                hx-indicator="#global-spinner"
+            >
+                <div>
+                    <label for="insight-question" class="form-label">Question</label>
+                    <input
+                        id="insight-question"
+                        name="question"
+                        type="text"
+                        class="form-input"
+                        placeholder="What is the biggest current programme risk?"
+                        required
+                    >
+                </div>
+                <button type="submit" class="primary-button">Ask</button>
+            </form>
+            <div id="qa-response-panel" class="mt-4 text-sm text-slate-500">
+                Questions are answered only from the current period indicator results, current monthly alerts when available, and the current DQ findings.
+            </div>
+        </div>
+    </section>
+
+    <section class="grid gap-6 xl:grid-cols-2">
+        <div class="space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-2xl font-semibold text-slate-900">Indicator insight</h2>
+                <div class="flex flex-wrap gap-3">
+                    <button
+                        type="button"
+                        class="primary-button"
+                        hx-get="/api/insights/htmx/indicator-card"
+                        hx-include="#insight-filter-form"
+                        hx-target="#indicator-insight-panel"
+                        hx-indicator="#global-spinner"
+                    >
+                        Interpret indicator
+                    </button>
+                    <button
+                        type="button"
+                        class="primary-button"
+                        hx-get="/api/insights/htmx/recommendations"
+                        hx-include="#insight-filter-form"
+                        hx-target="#recommendation-panel"
+                        hx-indicator="#global-spinner"
+                    >
+                        Recommend actions
+                    </button>
+                </div>
+            </div>
+            <div id="indicator-insight-panel" class="card-panel text-sm text-slate-500">
+                Select an indicator, then generate an interpretation that can include the selected history window as trend context.
+            </div>
+            <div id="recommendation-panel" class="card-panel text-sm text-slate-500">
+                Recommendations will appear here for the selected indicator.
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-slate-900">Cascade analysis</h2>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-3">
+                {% for cascade in cascades %}
+                <button
+                    type="button"
+                    class="rounded-2xl border border-slate-200 bg-white px-4 py-4 text-left transition hover:border-moh-green hover:bg-slate-50"
+                    hx-get="/api/insights/htmx/cascade-card?cascade={{ cascade.value }}"
+                    hx-include="#insight-filter-form"
+                    hx-target="#cascade-panel"
+                    hx-indicator="#global-spinner"
+                >
+                    <span class="block text-sm font-semibold text-slate-900">{{ cascade.label }}</span>
+                    <span class="mt-1 block text-xs text-slate-500">Identify bottlenecks and next actions.</span>
+                </button>
+                {% endfor %}
+            </div>
+            <div id="cascade-panel" class="card-panel text-sm text-slate-500">
+                Choose HIV, syphilis, or HBV to generate a cascade bottleneck review.
+            </div>
+        </div>
+    </section>
+
+    <section class="grid gap-6 xl:grid-cols-2">
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-slate-900">Alert synthesis</h2>
+                <button
+                    type="button"
+                    class="primary-button"
+                    hx-get="/api/insights/htmx/alerts"
+                    hx-include="#insight-filter-form"
+                    hx-target="#alert-insight-panel"
+                    hx-indicator="#global-spinner"
+                >
+                    Analyse alerts
+                </button>
+            </div>
+            <div id="alert-insight-panel" class="card-panel text-sm text-slate-500">
+                Generate a monthly management summary of the current alert burden.
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-semibold text-slate-900">Data-quality explanation</h2>
+                <button
+                    type="button"
+                    class="primary-button"
+                    hx-get="/api/insights/htmx/data-quality"
+                    hx-include="#insight-filter-form"
+                    hx-target="#dq-insight-panel"
+                    hx-indicator="#global-spinner"
+                >
+                    Explain DQ
+                </button>
+            </div>
+            <div id="dq-insight-panel" class="card-panel text-sm text-slate-500">
+                Translate current data-quality findings into plain-language programme implications.
+            </div>
+        </div>
+    </section>
+
+    <section class="card-panel border border-amber-200 bg-amber-50/80">
+        <h2 class="text-lg font-semibold text-amber-900">Advisory only</h2>
+        <p class="mt-2 text-sm leading-6 text-amber-800">
+            AI-generated content supports programme review but does not replace clinical judgment, district leadership review, or official WHO and Uganda MoH guidance.
+        </p>
+    </section>
+</div>
+{% endblock %}

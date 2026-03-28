@@ -1,0 +1,153 @@
+<div class="space-y-6">
+    <div class="card-panel">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Supply chain status</h2>
+                <p class="mt-1 text-sm text-slate-500">{{ org_unit_name or org_unit }} - {{ period }}</p>
+            </div>
+            {% set export_type = "supply" %}
+            {% include "components/export_buttons.html" %}
+        </div>
+    </div>
+
+    {% if summary is defined and summary %}
+    <div class="grid gap-4 sm:grid-cols-4">
+        <article class="metric-card">
+            <p class="metric-label">Mapped commodities</p>
+            <p class="metric-value text-2xl">{{ summary.total_mapped }}</p>
+        </article>
+        <article class="metric-card">
+            <p class="metric-label">Pending mapping</p>
+            <p class="metric-value text-2xl text-slate-400">{{ summary.total_unmapped }}</p>
+        </article>
+        <article class="metric-card">
+            <p class="metric-label">Critical alerts</p>
+            <p class="metric-value text-2xl text-rose-700">{{ summary.critical_alerts }}</p>
+        </article>
+        <article class="metric-card">
+            <p class="metric-label">Warnings</p>
+            <p class="metric-value text-2xl text-amber-600">{{ summary.warning_alerts }}</p>
+        </article>
+    </div>
+    {% endif %}
+
+    <div class="grid gap-5 lg:grid-cols-2">
+        {% for commodity in commodities %}
+        <article class="card-panel">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-semibold text-slate-900">{{ commodity.commodity }}</h2>
+                    <p class="mt-1 text-sm text-slate-500">{{ org_unit_name or org_unit }} - {{ period }}</p>
+                </div>
+                {% if commodity.status == "ok" %}
+                <span class="status-badge status-success">Adequate stock</span>
+                {% elif commodity.status == "low" %}
+                <span class="status-badge status-warning">Low stock</span>
+                {% elif commodity.status == "critical" %}
+                <span class="status-badge status-danger">Critical</span>
+                {% elif commodity.status == "stockout" %}
+                <span class="status-badge status-danger">Stockout</span>
+                {% elif commodity.status == "overstock" %}
+                <span class="status-badge status-unknown">Overstock</span>
+                {% else %}
+                <span class="status-badge status-unknown">Unknown</span>
+                {% endif %}
+            </div>
+            <dl class="mt-6 grid gap-4 sm:grid-cols-2">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Stock on hand</dt>
+                    <dd class="mt-2 text-2xl font-semibold text-slate-900">{{ commodity.stock_on_hand|round(1) if commodity.stock_on_hand is not none else "N/A" }}</dd>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Days of use</dt>
+                    <dd class="mt-2 text-2xl font-semibold text-slate-900">{{ commodity.days_of_use|round(1) if commodity.days_of_use is not none else "N/A" }}</dd>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Consumed</dt>
+                    <dd class="mt-2 text-xl font-semibold text-slate-900">{{ commodity.consumed|round(1) if commodity.consumed is not none else "N/A" }}</dd>
+                </div>
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+                    <dt class="text-xs font-semibold uppercase tracking-wide text-slate-500">Stockout days</dt>
+                    <dd class="mt-2 text-xl font-semibold text-slate-900">{{ commodity.stockout_days|round(1) if commodity.stockout_days is not none else "N/A" }}</dd>
+                </div>
+            </dl>
+
+            {% if commodity.expired is defined and commodity.expired is not none %}
+            <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3">
+                <p class="text-sm text-amber-800">
+                    <span class="font-semibold">{{ commodity.expired|round(0) }}</span> unit(s) expired in period
+                </p>
+            </div>
+            {% endif %}
+
+            {% if commodity.months_of_stock is defined and commodity.months_of_stock is not none %}
+            <div class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm text-slate-600">
+                <span>Months of stock: <span class="font-semibold">{{ commodity.months_of_stock }}</span></span>
+                {% if commodity.adjusted_adc is defined and commodity.adjusted_adc is not none %}
+                <span>Adjusted ADC: <span class="font-semibold">{{ commodity.adjusted_adc }}</span></span>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if commodity.forecast is defined and commodity.forecast %}
+            <div class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+                <p class="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Projected stock on hand</p>
+                <div class="flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-700">
+                    {% for days, projected in commodity.forecast.horizons.items() %}
+                    <span>{{ days }}d: <span class="font-semibold">{{ projected }}</span></span>
+                    {% endfor %}
+                </div>
+                {% if commodity.forecast.reorder_needed %}
+                <p class="mt-2 text-sm font-semibold text-amber-700">
+                    Reorder recommended: {{ commodity.forecast.reorder_quantity|round(0) }} units
+                </p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            {% if commodity.alerts is defined and commodity.alerts %}
+            <div class="mt-4 space-y-2">
+                {% for alert in commodity.alerts %}
+                <div class="rounded-2xl px-4 py-3 text-sm
+                    {% if alert.severity == 'critical' %}border border-rose-200 bg-rose-50 text-rose-800
+                    {% elif alert.severity == 'warning' %}border border-amber-200 bg-amber-50 text-amber-800
+                    {% else %}border border-sky-200 bg-sky-50 text-sky-800{% endif %}">
+                    {{ alert.message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            {% if commodity.validation is defined and commodity.validation %}
+            <div class="mt-4 space-y-1">
+                {% for finding in commodity.validation %}
+                <p class="text-xs
+                    {% if finding.severity == 'error' %}text-rose-600
+                    {% elif finding.severity == 'warning' %}text-amber-600
+                    {% else %}text-slate-500{% endif %}">
+                    {{ finding.message }}
+                </p>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </article>
+        {% endfor %}
+    </div>
+
+    {% if unmapped_commodities is defined and unmapped_commodities %}
+    <div class="card-panel">
+        <h3 class="text-lg font-semibold text-slate-700">Pending DHIS2 mapping</h3>
+        <p class="mt-1 text-sm text-slate-500">These PMTCT tracer items are not yet mapped to DHIS2 data elements.</p>
+        <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {% for item in unmapped_commodities %}
+            <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3">
+                <p class="text-sm font-medium text-slate-700">{{ item.name }}</p>
+                <p class="text-xs text-slate-400">{{ item.unit }} — mapping pending</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <p class="text-right text-xs text-slate-400">Generated {{ generated_at }}</p>
+</div>

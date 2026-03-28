@@ -1,0 +1,148 @@
+<section id="alert-results-container" class="space-y-6">
+    <article class="card-panel">
+        <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.2em] text-moh-green">Alert results</p>
+                <h2 class="mt-2 text-2xl font-semibold text-slate-900">
+                    {{ result.summary.total_alerts }} active alert{% if result.summary.total_alerts != 1 %}s{% endif %}
+                </h2>
+                <p class="mt-1 text-sm text-slate-500">
+                    {{ result.org_unit }} - {{ result.period }} -
+                    {{ result.summary.unacknowledged_count }} unacknowledged
+                </p>
+            </div>
+            <div class="grid gap-3 sm:grid-cols-4">
+                <article class="metric-card">
+                    <p class="metric-label">Critical</p>
+                    <p class="metric-value text-2xl text-rose-700">{{ result.summary.critical_count }}</p>
+                </article>
+                <article class="metric-card">
+                    <p class="metric-label">Warnings</p>
+                    <p class="metric-value text-2xl text-amber-600">{{ result.summary.warning_count }}</p>
+                </article>
+                <article class="metric-card">
+                    <p class="metric-label">Info</p>
+                    <p class="metric-value text-2xl text-sky-700">{{ result.summary.info_count }}</p>
+                </article>
+                <article class="metric-card">
+                    <p class="metric-label">Acknowledged</p>
+                    <p class="metric-value text-2xl">{{ result.summary.acknowledged_count }}</p>
+                </article>
+            </div>
+        </div>
+    </article>
+
+    {% macro render_alert_group(title, badge_class, heading_class, alerts) -%}
+    <article class="card-panel">
+        <div class="flex items-center justify-between gap-4">
+            <div>
+                <h3 class="text-lg font-semibold {{ heading_class }}">{{ title }}</h3>
+                <p class="mt-1 text-sm text-slate-500">{{ alerts|length }} alert{% if alerts|length != 1 %}s{% endif %} in this group</p>
+            </div>
+        </div>
+        <div class="mt-5 space-y-4">
+            {% for alert in alerts %}
+            <article class="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-5 {% if alert.acknowledged %}opacity-70{% endif %}">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div class="space-y-2">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide {{ badge_class }}">
+                                {{ alert.severity.value }}
+                            </span>
+                            <span class="inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                                {{ alert.category.value }}
+                            </span>
+                            {% if alert.acknowledged %}
+                            <span class="inline-flex rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                                Acknowledged
+                            </span>
+                            {% endif %}
+                        </div>
+                        <h4 class="text-lg font-semibold text-slate-900">{{ alert.title }}</h4>
+                        <p class="text-sm leading-6 text-slate-600">{{ alert.message }}</p>
+                        {% if alert.indicator_id %}
+                        <div class="flex flex-wrap gap-x-5 gap-y-2 text-xs font-medium text-slate-500">
+                            <span>Indicator: {{ alert.indicator_id }}</span>
+                            {% if alert.current_value is not none %}
+                            <span>Observed: {{ "%.1f"|format(alert.current_value) }}</span>
+                            {% endif %}
+                            {% if alert.threshold_value is not none %}
+                            <span>Threshold: {{ "%.1f"|format(alert.threshold_value) }}</span>
+                            {% endif %}
+                            {% if alert.target_value is not none %}
+                            <span>Target: {{ "%.1f"|format(alert.target_value) }}</span>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% if not alert.acknowledged and can_manage_alerts %}
+                    <div class="lg:min-w-40">
+                        <button
+                            type="button"
+                            class="inline-flex w-full items-center justify-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+                            hx-post="/api/alerts/{{ alert.alert_id }}/acknowledge"
+                            hx-include="#alert-filter-form"
+                            hx-target="#alert-results-container"
+                            hx-swap="outerHTML"
+                            hx-indicator="#global-spinner"
+                        >
+                            Acknowledge
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </article>
+    {%- endmacro %}
+
+    {% if alerts_by_severity.critical %}
+    {{ render_alert_group("Critical alerts", "bg-rose-100 text-rose-800", "text-rose-700", alerts_by_severity.critical) }}
+    {% endif %}
+
+    {% if alerts_by_severity.warning %}
+    {{ render_alert_group("Warning alerts", "bg-amber-100 text-amber-800", "text-amber-700", alerts_by_severity.warning) }}
+    {% endif %}
+
+    {% if alerts_by_severity.info %}
+    <details class="card-panel group" {% if not alerts_by_severity.critical and not alerts_by_severity.warning %}open{% endif %}>
+        <summary class="cursor-pointer list-none">
+            <div class="flex items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-sky-700">Informational alerts</h3>
+                    <p class="mt-1 text-sm text-slate-500">{{ alerts_by_severity.info|length }} informational alert{% if alerts_by_severity.info|length != 1 %}s{% endif %}</p>
+                </div>
+                <span class="text-sm font-medium text-slate-400 transition group-open:rotate-180">Show</span>
+            </div>
+        </summary>
+        <div class="mt-5 space-y-4">
+            {% for alert in alerts_by_severity.info %}
+            <article class="rounded-3xl border border-slate-200 bg-slate-50 px-5 py-5">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-sky-800">
+                        {{ alert.severity.value }}
+                    </span>
+                    <span class="inline-flex rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-slate-700">
+                        {{ alert.category.value }}
+                    </span>
+                </div>
+                <h4 class="mt-3 text-lg font-semibold text-slate-900">{{ alert.title }}</h4>
+                <p class="mt-2 text-sm leading-6 text-slate-600">{{ alert.message }}</p>
+            </article>
+            {% endfor %}
+        </div>
+    </details>
+    {% endif %}
+
+    {% if not result.alerts %}
+    <article class="card-panel text-center">
+        <h2 class="text-2xl font-semibold text-emerald-700">No active monthly alerts</h2>
+        <p class="mt-3 text-sm leading-6 text-slate-500">
+            The selected organisation unit is currently within the configured monthly thresholds for indicator performance, supply status, and DQ-derived alerting.
+        </p>
+    </article>
+    {% endif %}
+
+    <p class="text-right text-xs text-slate-400">Evaluated {{ result.evaluated_at.strftime("%Y-%m-%d %H:%M UTC") }}</p>
+</section>

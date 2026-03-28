@@ -1,0 +1,182 @@
+<div class="space-y-3" id="{{ component_id }}">
+    <input
+        type="hidden"
+        name="{{ input_name }}"
+        id="{{ component_id }}-input"
+        value="{{ selected_node.uid if selected_node else '' }}"
+    >
+
+    <div>
+        <label for="{{ component_id }}-input" class="form-label">Organisation unit</label>
+        <div class="flex flex-wrap items-center gap-3">
+            <div
+                id="{{ component_id }}-selected-display"
+                class="min-h-[44px] flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700"
+            >
+                {% if selected_node %}
+                <span class="font-semibold text-slate-900">{{ selected_node.name }}</span>
+                <span class="ml-2 text-slate-500">{{ selected_node.level_name }}</span>
+                {% else %}
+                <span class="text-slate-400">Select an organisation unit</span>
+                {% endif %}
+            </div>
+            <button
+                type="button"
+                class="primary-button"
+                onclick="toggleOrgUnitModal('{{ component_id }}', true)"
+            >
+                Browse hierarchy
+            </button>
+        </div>
+    </div>
+
+    <div id="{{ component_id }}-include-children-wrapper">
+        {% if include_children_option and selected_node and selected_node.has_children %}
+        <label class="inline-flex items-center gap-2 text-sm text-slate-600">
+            <input
+                type="checkbox"
+                name="include_children"
+                value="true"
+                class="rounded border-slate-300 text-moh-green focus:ring-moh-green"
+            >
+            Include data from child units
+        </label>
+        {% endif %}
+    </div>
+
+    <div
+        id="{{ component_id }}-modal"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6"
+    >
+        <div class="w-full max-w-4xl overflow-hidden rounded-3xl bg-white shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                <div>
+                    <h3 class="text-xl font-semibold text-slate-900">Organisation unit hierarchy</h3>
+                    <p class="mt-1 text-sm text-slate-500">Browse children or select any accessible unit directly.</p>
+                </div>
+                <button
+                    type="button"
+                    class="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                    onclick="toggleOrgUnitModal('{{ component_id }}', false)"
+                    aria-label="Close organisation unit selector"
+                >
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="border-b border-slate-200 px-6 py-4">
+                <label for="{{ component_id }}-search-input" class="form-label">Search accessible units</label>
+                <input
+                    id="{{ component_id }}-search-input"
+                    type="search"
+                    name="q"
+                    class="form-input"
+                    placeholder="Search by name"
+                    hx-get="/api/org-units/htmx/search-results?input_name={{ input_name }}&component_id={{ component_id }}"
+                    hx-trigger="keyup changed delay:300ms"
+                    hx-target="#{{ component_id }}-search-results"
+                    hx-indicator="#global-spinner"
+                >
+                <div id="{{ component_id }}-search-results" class="mt-3"></div>
+            </div>
+
+            <div id="{{ component_id }}-breadcrumbs" class="border-b border-slate-200 bg-slate-50 px-6 py-3">
+                {% include "components/org_unit_breadcrumbs.html" %}
+            </div>
+
+            <div id="{{ component_id }}-list" class="max-h-[26rem] overflow-y-auto px-6 py-4">
+                {% if roots %}
+                <ul class="space-y-3">
+                    {% for root in roots %}
+                    <li class="rounded-2xl border border-slate-200 px-4 py-3">
+                        <div class="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-900">{{ root.name }}</p>
+                                <p class="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">{{ root.level_name }}</p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                {% if root.has_children %}
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center justify-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+                                    hx-get="/api/org-units/htmx/children/{{ root.uid }}?input_name={{ input_name }}&component_id={{ component_id }}"
+                                    hx-target="#{{ component_id }}-list"
+                                    hx-swap="innerHTML"
+                                    hx-indicator="#global-spinner"
+                                >
+                                    Open
+                                </button>
+                                {% endif %}
+                                <button
+                                    type="button"
+                                    class="primary-button"
+                                    onclick='selectOrgUnit("{{ component_id }}", "{{ input_name }}", {{ root.uid|tojson }}, {{ root.name|tojson }}, {{ root.level_name|tojson }}, {{ "true" if root.has_children else "false" }})'
+                                >
+                                    Select
+                                </button>
+                            </div>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-sm text-slate-500">No accessible organisation units were returned for this session.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleOrgUnitModal(componentId, show) {
+    const modal = document.getElementById(`${componentId}-modal`);
+    if (!modal) {
+        return;
+    }
+    modal.classList.toggle("hidden", !show);
+}
+
+function renderIncludeChildren(componentId, inputName, hasChildren) {
+    const wrapper = document.getElementById(`${componentId}-include-children-wrapper`);
+    if (!wrapper) {
+        return;
+    }
+
+    if (!hasChildren) {
+        wrapper.innerHTML = "";
+        return;
+    }
+
+    wrapper.innerHTML = `
+        <label class="inline-flex items-center gap-2 text-sm text-slate-600">
+            <input
+                type="checkbox"
+                name="include_children"
+                value="true"
+                class="rounded border-slate-300 text-moh-green focus:ring-moh-green"
+            >
+            Include data from child units
+        </label>
+    `;
+}
+
+function selectOrgUnit(componentId, inputName, uid, name, levelName, hasChildren) {
+    const hiddenInput = document.getElementById(`${componentId}-input`);
+    const selectedDisplay = document.getElementById(`${componentId}-selected-display`);
+
+    if (!hiddenInput || !selectedDisplay) {
+        return;
+    }
+
+    hiddenInput.value = uid;
+    selectedDisplay.innerHTML = `
+        <span class="font-semibold text-slate-900">${name}</span>
+        <span class="ml-2 text-slate-500">${levelName}</span>
+    `;
+    renderIncludeChildren(componentId, inputName, hasChildren === true || hasChildren === "true");
+    toggleOrgUnitModal(componentId, false);
+    hiddenInput.dispatchEvent(new Event("change", { bubbles: true }));
+}
+</script>

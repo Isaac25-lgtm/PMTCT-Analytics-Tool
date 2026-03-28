@@ -1,0 +1,470 @@
+# PMTCT Triple Elimination Indicator Definitions
+# Machine-readable format for calculator engine
+#
+# Formula syntax:
+#   - DE codes reference data elements (resolved via mappings.yaml)
+#   - Arithmetic: +, -, *, /
+#   - Special tokens: AN21-POS, expected_pregnancies, period_days, ADC(code)
+#
+# Do NOT modify UIDs without verification against Uganda HMIS.
+
+version: "1.0"
+last_updated: "2026-03-27"
+
+# =============================================================================
+# WHO VALIDATION INDICATORS
+# =============================================================================
+
+indicators:
+  VAL-01:
+    id: "VAL-01"
+    name: "ANC Coverage"
+    category: "who_validation"
+    description: "Percentage of expected pregnant women attending ANC"
+    numerator:
+      formula: "AN01a"
+      label: "ANC 1st visits"
+    denominator:
+      formula: "expected_pregnancies"
+      label: "Expected pregnancies (population × 0.05)"
+    result_type: "percentage"
+    target: 95.0
+    periodicity: "monthly"
+    notes: |
+      District denominator: UBOS population × 0.05
+      Facility denominator: User-entered expected pregnancies (hide if not provided)
+
+  VAL-02:
+    id: "VAL-02"
+    name: "HIV Testing Coverage at ANC"
+    category: "who_validation"
+    description: "Percentage of ANC attendees tested for HIV"
+    numerator:
+      formula: "AN17a"
+      label: "Pregnant women tested for HIV"
+    denominator:
+      formula: "AN01a"
+      label: "ANC 1st visits"
+    result_type: "percentage"
+    target: 95.0
+    periodicity: "monthly"
+
+  VAL-03:
+    id: "VAL-03"
+    name: "ART Coverage among HIV+ Pregnant Women"
+    category: "who_validation"
+    description: "Percentage of HIV+ pregnant women on ART"
+    numerator:
+      formula: "AN20a + AN20b"
+      label: "Known on ART + Newly initiated"
+    denominator:
+      formula: "AN18a + AN21-POS"
+      label: "Newly identified HIV+ + Known positive before ANC"
+    result_type: "percentage"
+    target: 95.0
+    periodicity: "monthly"
+    notes: "AN21-POS = sum of positive COCs from AN21"
+
+  VAL-04:
+    id: "VAL-04"
+    name: "Syphilis Testing Coverage at ANC"
+    category: "who_validation"
+    description: "Percentage of ANC attendees tested for syphilis"
+    numerator:
+      formula: "AN14a"
+      label: "Pregnant women tested for syphilis"
+    denominator:
+      formula: "AN01a"
+      label: "ANC 1st visits"
+    result_type: "percentage"
+    target: 95.0
+    periodicity: "monthly"
+
+  VAL-05:
+    id: "VAL-05"
+    name: "Syphilis Treatment Coverage"
+    category: "who_validation"
+    description: "Percentage of syphilis-positive pregnant women treated"
+    numerator:
+      formula: "AN14c"
+      label: "Syphilis-positive women treated"
+    denominator:
+      formula: "AN14b"
+      label: "Syphilis-positive women"
+    result_type: "percentage"
+    target: 95.0
+    periodicity: "monthly"
+
+  VAL-06:
+    id: "VAL-06"
+    name: "HepB Birth Dose Coverage (Proxy)"
+    category: "who_validation"
+    description: "HepB zero dose as percentage of live births (proxy for timely birth dose)"
+    numerator:
+      formula: "CL02"
+      label: "HepB birth doses given"
+    denominator:
+      formula: "MA05a1"
+      label: "Live births"
+    result_type: "percentage"
+    target: 90.0
+    periodicity: "monthly"
+    notes: "Proxy only. Does NOT measure 'within 24 hours' as required by WHO."
+
+  # ===========================================================================
+  # HIV CASCADE INDICATORS
+  # ===========================================================================
+
+  HIV-01:
+    id: "HIV-01"
+    name: "Known HIV Status at ANC"
+    category: "hiv_cascade"
+    description: "Percentage of ANC attendees with known HIV status"
+    numerator:
+      formula: "AN21"
+      label: "Women with known HIV status before ANC"
+    denominator:
+      formula: "AN01a"
+      label: "ANC 1st visits"
+    result_type: "percentage"
+    periodicity: "monthly"
+
+  HIV-02:
+    id: "HIV-02"
+    name: "HIV Positivity Rate at ANC"
+    category: "hiv_cascade"
+    description: "Percentage of HIV tests that are positive"
+    numerator:
+      formula: "AN18a"
+      label: "HIV positive (first time identified)"
+    denominator:
+      formula: "AN17a"
+      label: "Pregnant women tested for HIV"
+    result_type: "percentage"
+    periodicity: "monthly"
+
+  HIV-03:
+    id: "HIV-03"
+    name: "ART Initiation Rate (Newly Identified)"
+    category: "hiv_cascade"
+    description: "Percentage of newly identified HIV+ women initiated on ART"
+    numerator:
+      formula: "AN20b"
+      label: "Newly initiated on ART"
+    denominator:
+      formula: "AN18a"
+      label: "Newly identified HIV+"
+    result_type: "percentage"
+    periodicity: "monthly"
+
+  HIV-04:
+    id: "HIV-04"
+    name: "Viral Load Sample Collection Rate"
+    category: "hiv_cascade"
+    description: "Percentage of VL-eligible women with samples collected"
+    numerator:
+      formula: "AN23b"
+      label: "VL samples collected"
+    denominator:
+      formula: "AN23a"
+      label: "VL eligible"
+    result_type: "percentage"
+    periodicity: "monthly"
+
+  HIV-05:
+    id: "HIV-05"
+    name: "Viral Load Suppression Rate"
+    category: "hiv_cascade"
+    description: "Percentage of collected samples with suppressed VL"
+    numerator:
+      formula: "AN23d"
+      label: "VL suppressed"
+    denominator:
+      formula: "AN23b"
+      label: "VL samples collected"
+    result_type: "percentage"
+    periodicity: "monthly"
+
+  HIV-06:
+    id: "HIV-06"
+    name: "HEI Prophylaxis Coverage"
+    category: "hiv_cascade"
+    description: "Percentage of HEI initiated on ARV prophylaxis within 0-6 weeks"
+    numerator:
+      formula: "OE03"
+      label: "HEI initiated ARV prophylaxis"
+    denominator:
+      formula: "OE01"
+      label: "HEI registered in birth cohort"
+    result_type: "percentage"
+    periodicity: "monthly"
+
+  HIV-07:
+    id: "HIV-07"
+    name: "Early Infant Diagnosis by 2 Months"
+    category: "hiv_cascade"
+    description: "Percentage of HEI with DNA PCR test by 2 months"
+    numerator:
+      formula: "OE06"
+      label: "HEI with 1st DNA PCR by 2 months"
+    denominator:
+      formula: "OE01"
+      label: "HEI registered in birth cohort"
+    result_type: "percentage"
+    periodicity: "monthly"
+
+  HIV-08:
+    id: "HIV-08"
+    name: "HEI Retention Rate"
+    category: "hiv_cascade"
+    description: "Percentage of HEI retained in care (not died, transferred, or LTFU)"
+    numerator:
+      formula: "OE01 - OE12 - OE13 - OE14"
+      label: "HEI retained (total minus died/TO/LTFU)"
+    denominator:
+      formula: "OE01"
+      label: "HEI registered in birth cohort"
+    result_type: "percentage"
+    periodicity: "monthly"
+
+  HIV-09:
+    id: "HIV-09"
+    name: "HEI Loss to Follow-Up Rate"
+    category: "hiv_cascade"
+    description: "Percentage of HEI lost to follow-up"
+    numerator:
+      formula: "OE14"
+      label: "HEI lost to follow-up"
+    denominator:
+      formula: "OE01"
+      label: "HEI registered in birth cohort"
+    result_type: "percentage"
+    periodicity: "monthly"
+
+  HIV-10:
+    id: "HIV-10"
+    name: "HIV+ Delivery Rate"
+    category: "hiv_cascade"
+    description: "Percentage of deliveries to HIV+ women"
+    numerator:
+      formula: "MA21a"
+      label: "Deliveries to HIV+ women"
+    denominator:
+      formula: "MA04"
+      label: "Total deliveries"
+    result_type: "percentage"
+    periodicity: "monthly"
+
+  # ===========================================================================
+  # HBV CASCADE INDICATORS
+  # ===========================================================================
+
+  HBV-01:
+    id: "HBV-01"
+    name: "HBV Testing Coverage at ANC"
+    category: "hbv_cascade"
+    description: "Percentage of ANC attendees tested for HBV"
+    numerator:
+      formula: "AN16a"
+      label: "Pregnant women tested for HBV"
+    denominator:
+      formula: "AN01a"
+      label: "ANC 1st visits"
+    result_type: "percentage"
+    periodicity: "monthly"
+
+  HBV-02:
+    id: "HBV-02"
+    name: "HBV Positivity Rate"
+    category: "hbv_cascade"
+    description: "Percentage of HBV tests that are positive"
+    numerator:
+      formula: "AN16b"
+      label: "HBV positive"
+    denominator:
+      formula: "AN16a"
+      label: "Pregnant women tested for HBV"
+    result_type: "percentage"
+    periodicity: "monthly"
+
+  HBV-05:
+    id: "HBV-05"
+    name: "HBV Treatment Initiation Rate"
+    category: "hbv_cascade"
+    description: "Percentage of HBV+ pregnant women initiated on treatment"
+    numerator:
+      formula: "HB11"
+      label: "HBV+ women initiated on treatment"
+    denominator:
+      formula: "HB10"
+      label: "HBV+ pregnant women"
+    result_type: "percentage"
+    target: 90.0
+    periodicity: "monthly"
+
+  HBV-07:
+    id: "HBV-07"
+    name: "HepB Birth Dose Coverage"
+    category: "hbv_cascade"
+    alias_of: "VAL-06"
+    description: "Same as VAL-06"
+    numerator:
+      formula: "CL02"
+      label: "HepB birth doses given"
+    denominator:
+      formula: "MA05a1"
+      label: "Live births"
+    result_type: "percentage"
+    target: 90.0
+    periodicity: "monthly"
+    notes: "Alias of VAL-06. Proxy only."
+
+  HBV-08:
+    id: "HBV-08"
+    name: "Penta 3 Coverage"
+    category: "hbv_cascade"
+    description: "Count of DPT-HepB+Hib 3 doses given"
+    numerator:
+      formula: "CL12"
+      label: "Penta 3 doses given"
+    denominator:
+      formula: null
+      label: null
+    result_type: "count"
+    periodicity: "monthly"
+    notes: "Count only, no denominator available in current HMIS"
+
+  # ===========================================================================
+  # SYPHILIS INDICATOR
+  # ===========================================================================
+
+  SYP-01:
+    id: "SYP-01"
+    name: "Syphilis Positivity Rate"
+    category: "syphilis"
+    description: "Percentage of syphilis tests that are positive"
+    numerator:
+      formula: "AN14b"
+      label: "Syphilis positive"
+    denominator:
+      formula: "AN14a"
+      label: "Pregnant women tested for syphilis"
+    result_type: "percentage"
+    periodicity: "monthly"
+
+  # ===========================================================================
+  # SYSTEM PERFORMANCE INDICATORS
+  # ===========================================================================
+
+  SYS-01:
+    id: "SYS-01"
+    name: "Reporting Completeness"
+    category: "system"
+    description: "Percentage of expected reports submitted"
+    calculation_type: "completeness_api"
+    result_type: "percentage"
+    periodicity: "monthly"
+    notes: "TODO: Configure dataset UIDs for HMIS 105 / HMIS 033b"
+
+  SYS-03:
+    id: "SYS-03"
+    name: "Missed Appointment Rate"
+    category: "system"
+    description: "Percentage of expected eMTCT appointments missed"
+    numerator:
+      formula: "033B-AP05"
+      label: "eMTCT missed appointments"
+    denominator:
+      formula: "033B-AP04"
+      label: "Expected eMTCT mothers on appointment"
+    result_type: "percentage"
+    periodicity: "weekly"
+
+  # ===========================================================================
+  # SUPPLY CHAIN INDICATORS
+  # ===========================================================================
+
+  SUP-01:
+    id: "SUP-01"
+    name: "HBsAg Kits Consumed"
+    category: "supply"
+    description: "Number of HBsAg test kits consumed"
+    numerator:
+      formula: "SS40a"
+      label: "HBsAg kits consumed"
+    denominator:
+      formula: null
+      label: null
+    result_type: "count"
+    periodicity: "monthly"
+
+  SUP-02:
+    id: "SUP-02"
+    name: "HBsAg Stockout Days"
+    category: "supply"
+    description: "Number of days HBsAg kits were out of stock"
+    numerator:
+      formula: "SS40b"
+      label: "Days out of stock"
+    denominator:
+      formula: null
+      label: null
+    result_type: "count"
+    periodicity: "monthly"
+
+  SUP-03:
+    id: "SUP-03"
+    name: "HIV/Syphilis Duo Kits Consumed"
+    category: "supply"
+    description: "Number of HIV/Syphilis Duo test kits consumed"
+    numerator:
+      formula: "SS41a"
+      label: "Duo kits consumed"
+    denominator:
+      formula: null
+      label: null
+    result_type: "count"
+    periodicity: "monthly"
+
+  SUP-04:
+    id: "SUP-04"
+    name: "Duo Kit Stockout Days"
+    category: "supply"
+    description: "Number of days HIV/Syphilis Duo kits were out of stock"
+    numerator:
+      formula: "SS41b"
+      label: "Days out of stock"
+    denominator:
+      formula: null
+      label: null
+    result_type: "count"
+    periodicity: "monthly"
+
+  SUP-05:
+    id: "SUP-05"
+    name: "HBsAg Days of Use"
+    category: "supply"
+    description: "Estimated days of stock remaining for HBsAg kits"
+    calculation_type: "days_of_use"
+    stock_on_hand: "SS40c"
+    consumption: "SS40a"
+    result_type: "days"
+    periodicity: "monthly"
+    notes: "DOU = SOH / ADC, where ADC = consumption / period_days"
+
+  SUP-06:
+    id: "SUP-06"
+    name: "Duo Kit Days of Use"
+    category: "supply"
+    description: "Estimated days of stock remaining for HIV/Syphilis Duo kits"
+    calculation_type: "days_of_use"
+    stock_on_hand: "SS41c"
+    consumption: "SS41a"
+    result_type: "days"
+    periodicity: "monthly"
+    notes: "DOU = SOH / ADC, where ADC = consumption / period_days"
+
+# =============================================================================
+# NOTE: Data element UIDs are loaded from config/mappings.yaml
+# Do NOT duplicate UIDs here. The indicator registry loads both files.
+# =============================================================================

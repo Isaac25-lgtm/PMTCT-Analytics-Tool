@@ -1,0 +1,26 @@
+{% if results %}
+<div class="rounded-2xl border border-slate-200 bg-white">
+    <ul class="divide-y divide-slate-200">
+        {% for result in results %}
+        <li class="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+            <div>
+                <p class="text-sm font-semibold text-slate-900">{{ result.name }}</p>
+                {% if result.path_display %}
+                <p class="mt-1 text-xs text-slate-500">{{ result.path_display }}</p>
+                {% endif %}
+                <p class="mt-1 text-[11px] uppercase tracking-[0.18em] text-slate-400">{{ result.level_name }}</p>
+            </div>
+            <button
+                type="button"
+                class="primary-button"
+                onclick='selectOrgUnit("{{ component_id }}", "{{ input_name }}", {{ result.uid|tojson }}, {{ result.name|tojson }}, {{ result.level_name|tojson }}, {{ "true" if result.level < 5 else "false" }})'
+            >
+                Select
+            </button>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% elif query %}
+<p class="text-sm text-slate-500">No accessible organisation units matched "{{ query }}".</p>
+{% endif %}

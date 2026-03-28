@@ -1,0 +1,168 @@
+<div class="space-y-6">
+    <div class="card-panel">
+        <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">Trend analysis results</h2>
+                <p class="mt-1 text-sm text-slate-500">
+                    {{ org_unit_name or org_unit }} - {{ period_labels[0] }} to {{ period_labels[-1] }} ({{ periods|length }} months)
+                </p>
+            </div>
+            <div class="status-badge status-unknown">{{ trends|length }} indicator(s)</div>
+        </div>
+    </div>
+
+    <div class="card-panel">
+        <div class="mb-5">
+            <h3 class="text-lg font-semibold text-slate-900">Trend comparison</h3>
+            <p class="mt-1 text-sm text-slate-500">Each line shows one indicator across the selected monthly window.</p>
+        </div>
+        <div class="chart-shell">
+            <canvas id="trend-chart"></canvas>
+        </div>
+    </div>
+
+    <div class="grid gap-6 lg:grid-cols-2">
+        {% for trend in trends %}
+        <section class="card-panel overflow-hidden">
+            <div class="flex flex-col gap-4 border-b border-slate-200 px-1 pb-4 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-900">{{ trend.indicator_name }}</h3>
+                    <p class="mt-1 text-sm text-slate-500">{{ trend.indicator_id }}</p>
+                </div>
+                <div>
+                    {% if trend.summary.direction == "up" %}
+                    <span class="status-badge status-success">Increasing</span>
+                    {% elif trend.summary.direction == "down" %}
+                    <span class="status-badge status-danger">Declining</span>
+                    {% elif trend.summary.direction == "stable" %}
+                    <span class="status-badge status-unknown">Stable</span>
+                    {% else %}
+                    <span class="status-badge status-unknown">Unknown</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                <article class="metric-card">
+                    <p class="metric-label">Start</p>
+                    <p class="metric-value text-2xl">
+                        {% if trend.summary.start_value is not none %}
+                            {% if trend.result_type == "percentage" %}
+                                {{ "%.1f"|format(trend.summary.start_value) }}%
+                            {% elif trend.result_type == "days" %}
+                                {{ "%.0f"|format(trend.summary.start_value) }} days
+                            {% else %}
+                                {{ "%.0f"|format(trend.summary.start_value) }}
+                            {% endif %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                </article>
+                <article class="metric-card">
+                    <p class="metric-label">End</p>
+                    <p class="metric-value text-2xl">
+                        {% if trend.summary.end_value is not none %}
+                            {% if trend.result_type == "percentage" %}
+                                {{ "%.1f"|format(trend.summary.end_value) }}%
+                            {% elif trend.result_type == "days" %}
+                                {{ "%.0f"|format(trend.summary.end_value) }} days
+                            {% else %}
+                                {{ "%.0f"|format(trend.summary.end_value) }}
+                            {% endif %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                </article>
+                <article class="metric-card">
+                    <p class="metric-label">Change</p>
+                    <p class="metric-value text-2xl {% if trend.summary.percent_change is not none and trend.summary.percent_change > 0 %}text-emerald-700{% elif trend.summary.percent_change is not none and trend.summary.percent_change < 0 %}text-rose-700{% endif %}">
+                        {% if trend.summary.percent_change is not none %}
+                            {{ "%+.1f"|format(trend.summary.percent_change) }}%
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                </article>
+                <article class="metric-card">
+                    <p class="metric-label">Average</p>
+                    <p class="metric-value text-2xl">
+                        {% if trend.summary.average is not none %}
+                            {% if trend.result_type == "percentage" %}
+                                {{ "%.1f"|format(trend.summary.average) }}%
+                            {% elif trend.result_type == "days" %}
+                                {{ "%.0f"|format(trend.summary.average) }} days
+                            {% else %}
+                                {{ "%.0f"|format(trend.summary.average) }}
+                            {% endif %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </p>
+                </article>
+            </div>
+
+            <div class="mt-5 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <span>Valid periods: {{ trend.summary.valid_periods }} / {{ trend.summary.total_periods }}</span>
+                    {% if trend.target is not none %}
+                    <span>Target met in {{ trend.summary.meets_target_count }} period(s)</span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="mt-5 overflow-hidden rounded-2xl border border-slate-200">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <tr>
+                            <th class="px-4 py-3">Period</th>
+                            <th class="px-4 py-3 text-right">Value</th>
+                            <th class="px-4 py-3 text-right">Num / Den</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-200 text-sm text-slate-700">
+                        {% for value in trend.values %}
+                        <tr class="{% if loop.index is even %}bg-slate-50/80{% else %}bg-white{% endif %}">
+                            <td class="px-4 py-3 font-medium text-slate-900">{{ value.period_label }}</td>
+                            <td class="px-4 py-3 text-right {% if not value.is_valid %}text-slate-400{% endif %}">
+                                {% if value.value is not none %}
+                                    {% if trend.result_type == "percentage" %}
+                                        {{ "%.1f"|format(value.value) }}%
+                                    {% elif trend.result_type == "days" %}
+                                        {{ "%.0f"|format(value.value) }} days
+                                    {% else %}
+                                        {{ "%.0f"|format(value.value) }}
+                                    {% endif %}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-3 text-right text-xs text-slate-500">
+                                {% if value.numerator is not none %}
+                                    {{ value.numerator|round(1) }}
+                                    {% if value.denominator is not none %}/ {{ value.denominator|round(1) }}{% endif %}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% endfor %}
+    </div>
+
+    <p class="text-right text-xs text-slate-400">Generated {{ generated_at }}</p>
+</div>
+
+<script>
+window.renderTrendChart(
+    "trend-primary",
+    "trend-chart",
+    {{ period_labels_json|safe }},
+    {{ chart_data_json|safe }}
+);
+</script>

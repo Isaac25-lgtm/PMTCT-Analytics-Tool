@@ -1,0 +1,27 @@
+# =============================================================================
+# CACHE CONFIGURATION
+# =============================================================================
+
+cache:
+  enabled: true
+  max_size: 5000
+  default_ttl: 300
+
+ttl:
+  metadata: 3600
+  hierarchy: 3600
+  aggregate: 300
+  indicators: 300
+  trends: 600
+  insights: 900
+  data_quality: 300
+  alerts: 300
+
+connection_pool:
+  max_connections: 100
+  max_keepalive: 20
+  keepalive_expiry: 30
+  connect_timeout: 10
+  read_timeout: 60
+  write_timeout: 30
+  pool_timeout: 30

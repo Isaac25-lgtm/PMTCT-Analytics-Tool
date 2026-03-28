@@ -1,0 +1,90 @@
+# Role-based access control and security defaults for the PMTCT analytics tool.
+
+roles:
+  viewer:
+    description: "Basic view access for authenticated users"
+    level: 1
+    dhis2_authorities: []
+    any_of: true
+
+  analyst:
+    description: "Export and analytics access"
+    level: 2
+    dhis2_authorities:
+      - F_EXPORT_DATA
+      - F_PERFORM_ANALYTICS
+      - F_EXPORT_EVENTS
+      - M_dhis-web-pivot
+      - M_dhis-web-data-visualizer
+    any_of: true
+
+  data_manager:
+    description: "Data quality and alert management access"
+    level: 3
+    dhis2_authorities:
+      - F_DATAVALUE_ADD
+      - F_DATAELEMENT_PUBLIC_ADD
+      - F_DATASET_PUBLIC_ADD
+      - F_INDICATOR_PUBLIC_ADD
+      - M_dhis-web-data-administration
+    any_of: true
+
+  admin:
+    description: "Full system access"
+    level: 4
+    dhis2_authorities:
+      - ALL
+      - F_SYSTEM_SETTING
+      - M_dhis-web-settings
+    any_of: true
+
+permissions:
+  view_indicators:
+    roles: [viewer, analyst, data_manager, admin]
+  view_dashboard:
+    roles: [viewer, analyst, data_manager, admin]
+  view_data_quality:
+    roles: [viewer, analyst, data_manager, admin]
+  view_alerts:
+    roles: [viewer, analyst, data_manager, admin]
+  view_trends:
+    roles: [viewer, analyst, data_manager, admin]
+  view_org_units:
+    roles: [viewer, analyst, data_manager, admin]
+  export_reports:
+    roles: [analyst, data_manager, admin]
+  export_pdf:
+    roles: [analyst, data_manager, admin]
+  use_ai_insights:
+    roles: [analyst, data_manager, admin]
+  view_audit_logs:
+    roles: [data_manager, admin]
+  manage_alerts:
+    roles: [data_manager, admin]
+  system_admin:
+    roles: [admin]
+
+rate_limits:
+  ai_insights:
+    max_requests: 20
+    window_seconds: 3600
+    scope: session
+  pdf_export:
+    max_requests: 30
+    window_seconds: 3600
+    scope: session
+  excel_export:
+    max_requests: 50
+    window_seconds: 3600
+    scope: session
+  api_general:
+    max_requests: 300
+    window_seconds: 60
+    scope: session
+  login:
+    max_requests: 5
+    window_seconds: 900
+    scope: ip
+
+audit:
+  enabled: true

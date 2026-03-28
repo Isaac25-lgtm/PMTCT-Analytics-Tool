@@ -1,0 +1,121 @@
+# Data Quality Rules Configuration
+# PMTCT Triple Elimination Analytics Tool
+
+rules:
+  - id: DQ-001
+    name: Negative Value Check
+    description: >
+      Check for negative values in count-style data.
+      Negative counts are never valid and indicate data entry errors.
+    category: consistency
+    severity: critical
+    enabled: true
+    applies_to:
+      - ALL
+    params: {}
+
+  - id: DQ-002
+    name: Percentage Bounds Check
+    description: >
+      Check that percentage indicators remain within valid bounds.
+      Small overages can happen because of timing mismatches; large ones indicate review is needed.
+    category: consistency
+    severity: warning
+    enabled: true
+    applies_to:
+      - VAL-01
+      - VAL-02
+      - VAL-03
+      - VAL-04
+      - VAL-05
+      - VAL-06
+      - HIV-01
+      - HIV-02
+      - HIV-03
+      - HBV-01
+      - HBV-02
+      - SYP-01
+    params:
+      max_percentage: 105.0
+
+  - id: DQ-003
+    name: Numerator Exceeds Denominator
+    description: >
+      Check that numerator values do not materially exceed the denominator.
+      This usually points to timing or data-entry issues.
+    category: consistency
+    severity: warning
+    enabled: true
+    applies_to:
+      - ALL
+    params:
+      tolerance_percent: 5.0
+
+  - id: DQ-004
+    name: Outlier Detection (MAD)
+    description: >
+      Detect statistical outliers using Median Absolute Deviation.
+      This runs only on monthly indicators with enough history.
+    category: outlier
+    severity: warning
+    enabled: true
+    applies_to:
+      - ALL
+    params:
+      mad_threshold: 3.5
+      min_history: 3
+
+  - id: DQ-005
+    name: Repeated Identical Values
+    description: >
+      Check for identical values repeated across consecutive periods.
+      Repeated identical values may indicate copy-forward reporting.
+    category: consistency
+    severity: info
+    enabled: true
+    applies_to:
+      - ALL
+    params:
+      min_repeats: 3
+
+  - id: DQ-006
+    name: Cascade Consistency
+    description: >
+      Check that downstream indicators do not exceed upstream cascade steps.
+    category: cascade
+    severity: warning
+    enabled: true
+    applies_to:
+      - ALL
+    params: {}
+
+  - id: DQ-007
+    name: Supply-Service Reconciliation
+    description: >
+      Check that reported service activity is plausible relative to the commodity use
+      needed to deliver those services.
+    category: reconciliation
+    severity: warning
+    enabled: true
+    applies_to:
+      - ALL
+    params:
+      tolerance_percent: 10.0
+
+cascade_pairs:
+  - upstream: HIV-01
+    downstream: HIV-02
+  - upstream: VAL-02
+    downstream: HIV-02
+  - upstream: VAL-04
+    downstream: VAL-05
+  - upstream: HBV-01
+    downstream: HBV-02
+
+reconciliation_pairs:
+  - service: HBV-01
+    supply: SUP-01
+  - service: VAL-02
+    supply: SUP-03
+  - service: VAL-04
+    supply: SUP-03

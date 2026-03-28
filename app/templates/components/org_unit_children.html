@@ -1,0 +1,47 @@
+<div hx-swap-oob="innerHTML:#{{ component_id }}-breadcrumbs">
+    {% include "components/org_unit_breadcrumbs.html" %}
+</div>
+
+{% if children %}
+<ul class="space-y-3">
+    {% for child in children %}
+    <li class="rounded-2xl border border-slate-200 px-4 py-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <p class="text-sm font-semibold text-slate-900">{{ child.name }}</p>
+                <p class="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">{{ child.level_name }}</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                {% if child.has_children %}
+                <button
+                    type="button"
+                    class="inline-flex items-center justify-center rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+                    hx-get="/api/org-units/htmx/children/{{ child.uid }}?input_name={{ input_name }}&component_id={{ component_id }}"
+                    hx-target="#{{ component_id }}-list"
+                    hx-swap="innerHTML"
+                    hx-indicator="#global-spinner"
+                >
+                    Open
+                </button>
+                {% endif %}
+                <button
+                    type="button"
+                    class="primary-button"
+                    onclick='selectOrgUnit("{{ component_id }}", "{{ input_name }}", {{ child.uid|tojson }}, {{ child.name|tojson }}, {{ child.level_name|tojson }}, {{ "true" if child.has_children else "false" }})'
+                >
+                    Select
+                </button>
+            </div>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-sm text-slate-500">No child organisation units found.</p>
+{% endif %}
+
+{% if truncated %}
+<p class="mt-4 text-sm text-slate-500">
+    Showing the first {{ max_children_display }} child units. Use search to narrow down larger branches.
+</p>
+{% endif %}

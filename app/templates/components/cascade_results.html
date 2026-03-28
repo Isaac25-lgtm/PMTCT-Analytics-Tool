@@ -1,0 +1,50 @@
+<div class="space-y-6">
+    <div class="card-panel">
+        <div class="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">{{ cascade_type|upper }} cascade</h2>
+                <p class="mt-1 text-sm text-slate-500">{{ org_unit_name or org_unit }} - {{ period }}</p>
+            </div>
+            {% set export_type = "cascade" %}
+            {% include "components/export_buttons.html" %}
+        </div>
+        <div class="chart-shell">
+            <canvas id="cascade-chart"></canvas>
+        </div>
+    </div>
+
+    <div class="card-panel overflow-hidden">
+        <table class="min-w-full divide-y divide-slate-200">
+            <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="px-4 py-3">Step</th>
+                    <th class="px-4 py-3 text-right">Count</th>
+                    <th class="px-4 py-3 text-right">Coverage</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-200 text-sm text-slate-700">
+                {% for step in steps %}
+                <tr class="{% if loop.index is even %}bg-slate-50/80{% else %}bg-white{% endif %}">
+                    <td class="px-4 py-3">
+                        <div class="font-medium text-slate-900">{{ step.name }}</div>
+                        <div class="text-xs text-slate-500">{{ step.indicator_id }}</div>
+                    </td>
+                    <td class="px-4 py-3 text-right">{{ step.count|round(1) if step.count is not none else "N/A" }}</td>
+                    <td class="px-4 py-3 text-right font-medium text-slate-900">{{ step.formatted_value }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <p class="text-right text-xs text-slate-400">Generated {{ generated_at }}</p>
+</div>
+
+<script>
+window.renderCascadeChart(
+    "cascade-primary",
+    "cascade-chart",
+    {{ steps_json|safe }},
+    "{{ cascade_type|upper }} coverage"
+);
+</script>

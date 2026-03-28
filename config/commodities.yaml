@@ -1,0 +1,88 @@
+# PMTCT Tracer Commodity Registry
+# Mapping codes reference data elements in config/mappings.yaml.
+# Indicator IDs reference entries in config/indicators.yaml.
+# Do NOT duplicate raw UIDs here.
+
+version: "1.0"
+
+commodities:
+  hbsag_kits:
+    id: hbsag_kits
+    name: "HBsAg Test Kits"
+    unit: "kits"
+    category: "pmtct"
+    mapping_status: "mapped"
+    reorder_level_months: 2.0
+    max_stock_months: 6.0
+    mapping:
+      consumed: SS40a
+      stockout_days: SS40b
+      stock_on_hand: SS40c
+      expired: SS40d
+      days_of_use_indicator: SUP-05
+      consumed_indicator: SUP-01
+      stockout_days_indicator: SUP-02
+
+  duo_kits:
+    id: duo_kits
+    name: "HIV/Syphilis Duo Test Kits"
+    unit: "kits"
+    category: "pmtct"
+    mapping_status: "mapped"
+    reorder_level_months: 2.0
+    max_stock_months: 6.0
+    mapping:
+      consumed: SS41a
+      stockout_days: SS41b
+      stock_on_hand: SS41c
+      expired: SS41d
+      days_of_use_indicator: SUP-06
+      consumed_indicator: SUP-03
+      stockout_days_indicator: SUP-04
+
+  benzathine_penicillin:
+    id: benzathine_penicillin
+    name: "Benzathine Penicillin G 2.4MU"
+    unit: "vials"
+    category: "pmtct"
+    mapping_status: "mapping_pending"
+    reorder_level_months: 2.0
+    max_stock_months: 6.0
+    mapping: {}
+
+  tdf_300mg:
+    id: tdf_300mg
+    name: "TDF 300mg"
+    unit: "tablets"
+    category: "pmtct"
+    mapping_status: "mapping_pending"
+    reorder_level_months: 2.0
+    max_stock_months: 6.0
+    mapping: {}
+
+  hepb_vaccine:
+    id: hepb_vaccine
+    name: "Hepatitis B Vaccine"
+    unit: "doses"
+    category: "pmtct"
+    mapping_status: "mapping_pending"
+    reorder_level_months: 2.0
+    max_stock_months: 6.0
+    mapping: {}
+
+  dbs_cards:
+    id: dbs_cards
+    name: "Dried Blood Spot (DBS) Cards"
+    unit: "cards"
+    category: "pmtct"
+    mapping_status: "mapping_pending"
+    reorder_level_months: 2.0
+    max_stock_months: 6.0
+    mapping: {}
+
+# Default thresholds reused from Prompt 10 alert semantics
+thresholds:
+  stockout_dou: 0
+  imminent_stockout_dou: 7
+  low_stock_dou: 30
+  overstock_dou: 180

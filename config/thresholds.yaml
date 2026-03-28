@@ -1,0 +1,24 @@
+# =============================================================================
+# Alert Thresholds
+# PMTCT Triple Elimination Analytics Tool
+# =============================================================================
+
+coverage:
+  critical: 50
+  warning: 80
+  target: 95
+
+stockout:
+  critical_dou: 7
+  high_dou: 14
+  medium_dou: 30
+  overstock_dou: 180
+
+data_quality:
+  poor: 50
+  acceptable: 80
+  good: 95
+
+missed_appointments:
+  high: 20
+  medium: 10

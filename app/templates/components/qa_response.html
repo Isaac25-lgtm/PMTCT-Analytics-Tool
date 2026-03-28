@@ -1,0 +1,31 @@
+<article class="card-panel">
+    <div class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+        <p class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Question</p>
+        <p class="mt-2 text-sm font-medium text-slate-900">{{ question }}</p>
+    </div>
+
+    <div class="mt-4 flex flex-wrap items-center gap-2 text-xs">
+        {% if insight.status.value == "success" %}
+        <span class="status-badge status-success">AI generated</span>
+        {% elif insight.status.value == "fallback" %}
+        <span class="status-badge status-warning">Rule-based fallback</span>
+        {% elif insight.status.value == "disabled" %}
+        <span class="status-badge status-unknown">LLM disabled</span>
+        {% else %}
+        <span class="status-badge status-danger">Generation error</span>
+        {% endif %}
+        <span class="status-badge status-unknown">Current-session only</span>
+    </div>
+
+    <div class="mt-4 whitespace-pre-line text-sm leading-6 text-slate-700">
+        {{ insight.content }}
+    </div>
+
+    {% if insight.error_message %}
+    <p class="mt-4 text-xs text-amber-700">{{ insight.error_message }}</p>
+    {% endif %}
+
+    <p class="mt-4 border-t border-slate-100 pt-4 text-xs text-slate-400">
+        This answer uses only the current period indicator results, current monthly alerts when available, and the current data-quality findings.
+    </p>
+</article>

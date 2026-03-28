@@ -1,0 +1,68 @@
+<div class="space-y-6">
+    <div class="grid gap-4 sm:grid-cols-3">
+        <article class="metric-card">
+            <p class="metric-label">Indicators reviewed</p>
+            <p class="metric-value">{{ summary.total }}</p>
+        </article>
+        <article class="metric-card">
+            <p class="metric-label">Meeting target</p>
+            <p class="metric-value text-emerald-700">{{ summary.meeting_target }}</p>
+        </article>
+        <article class="metric-card">
+            <p class="metric-label">Score</p>
+            <p class="metric-value {% if summary.score_pct >= 80 %}text-emerald-700{% elif summary.score_pct >= 60 %}text-amber-600{% else %}text-rose-700{% endif %}">
+                {{ "%.0f"|format(summary.score_pct) }}%
+            </p>
+        </article>
+    </div>
+
+    <div class="card-panel overflow-hidden">
+        <div class="flex flex-col gap-4 border-b border-slate-200 px-1 pb-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+                <h2 class="text-xl font-semibold text-slate-900">WHO validation indicators</h2>
+                <p class="mt-1 text-sm text-slate-500">{{ org_unit_name or org_unit }} - {{ period }}</p>
+            </div>
+            {% set export_type = "scorecard" %}
+            {% include "components/export_buttons.html" %}
+        </div>
+        <div class="mt-4 overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-200">
+                <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <tr>
+                        <th class="px-4 py-3">Indicator</th>
+                        <th class="px-4 py-3 text-right">Value</th>
+                        <th class="px-4 py-3 text-right">Target</th>
+                        <th class="px-4 py-3 text-right">Status</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-200 text-sm text-slate-700">
+                    {% for indicator in indicators %}
+                    <tr class="{% if loop.index is even %}bg-slate-50/80{% else %}bg-white{% endif %}">
+                        <td class="px-4 py-3">
+                            <div class="font-medium text-slate-900">{{ indicator.name }}</div>
+                            <div class="text-xs text-slate-500">{{ indicator.id }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-right font-medium text-slate-900">{{ indicator.formatted_value }}</td>
+                        <td class="px-4 py-3 text-right text-slate-500">
+                            {% if indicator.target is not none %}>= {{ indicator.target }}%{% else %}N/A{% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            {% if indicator.status == "success" %}
+                            <span class="status-badge status-success">Meeting target</span>
+                            {% elif indicator.status == "warning" %}
+                            <span class="status-badge status-warning">Near target</span>
+                            {% elif indicator.status == "danger" %}
+                            <span class="status-badge status-danger">Below target</span>
+                            {% else %}
+                            <span class="status-badge status-unknown">No data</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <p class="text-right text-xs text-slate-400">Generated {{ generated_at }}</p>
+</div>

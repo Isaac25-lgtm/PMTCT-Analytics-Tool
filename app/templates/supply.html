@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% set active_page = "supply" %}
+
+{% block title %}Supply Chain | PMTCT Triple Elimination{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <section class="card-panel">
+        <p class="text-sm font-semibold uppercase tracking-[0.25em] text-moh-green">Commodity review</p>
+        <h1 class="mt-3 text-3xl font-semibold text-slate-900">Supply chain status</h1>
+        <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+            Review stock on hand, stockout days, consumption, and days of use for key PMTCT commodities using the same session-connected DHIS2 data feed.
+        </p>
+    </section>
+
+    <section class="card-panel">
+        <form hx-post="/api/reports/supply-status" hx-target="#supply-results" hx-indicator="#global-spinner" class="grid gap-5 xl:grid-cols-5">
+            <div class="xl:col-span-2">
+                <label for="supply-org-unit" class="form-label">Organisation unit</label>
+                <select id="supply-org-unit" name="org_unit" class="form-select" required>
+                    {% for org_unit in org_units %}
+                    <option value="{{ org_unit.id }}">{{ org_unit.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div data-period-controls class="grid gap-5 sm:grid-cols-3 xl:col-span-3">
+                <div>
+                    <label for="supply-periodicity" class="form-label">Frequency</label>
+                    <select id="supply-periodicity" name="periodicity" data-periodicity-select class="form-select">
+                        {% for option in periodicity_options %}
+                        <option value="{{ option.id }}" {% if option.id == default_periodicity %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="supply-history-depth" class="form-label">History depth</label>
+                    <select id="supply-history-depth" name="history_depth" data-history-depth-select class="form-select">
+                        {% for option in history_depth_options %}
+                        <option value="{{ option.id }}" {% if option.id == default_history_depth %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="supply-period" class="form-label">Period</label>
+                    <select id="supply-period" name="period" data-period-select class="form-select" required>
+                        {% for period in periods %}
+                        <option value="{{ period.id }}">{{ period.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="xl:col-span-5">
+                <button type="submit" class="primary-button">Check stock status</button>
+            </div>
+        </form>
+    </section>
+
+    <section id="supply-results">
+        {% include "components/supply_placeholder.html" %}
+    </section>
+</div>
+{% endblock %}

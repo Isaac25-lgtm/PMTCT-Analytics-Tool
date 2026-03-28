@@ -1,0 +1,21 @@
+# =============================================================================
+# Risk Score Weights (configurable)
+# PMTCT Triple Elimination Analytics Tool
+# =============================================================================
+# Weights must sum to 1.00. Each weight represents the proportion of the
+# composite risk score attributed to that dimension.
+# =============================================================================
+
+weights:
+  hiv_testing_gap: 0.12
+  syphilis_testing_gap: 0.08
+  hbv_screening_gap: 0.08
+  art_coverage_gap: 0.12
+  syphilis_treatment_gap: 0.08
+  missed_appointments: 0.12
+  stockout_risk: 0.10
+  trend_declining: 0.10
+  volatility: 0.05
+  chronic_underperformance: 0.05
+  reporting_gap: 0.05
+  validation_failures: 0.05

@@ -1,0 +1,25 @@
+<nav class="flex flex-wrap items-center gap-2 text-sm" aria-label="Organisation unit breadcrumbs">
+    {% if breadcrumbs %}
+        {% for crumb in breadcrumbs %}
+            {% if crumb.is_current %}
+            <span class="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-white">
+                {{ crumb.name }}
+            </span>
+            {% else %}
+            <button
+                type="button"
+                class="text-sm font-medium text-moh-green transition hover:text-emerald-700"
+                hx-get="/api/org-units/htmx/children/{{ crumb.uid }}?input_name={{ input_name }}&component_id={{ component_id }}"
+                hx-target="#{{ component_id }}-list"
+                hx-swap="innerHTML"
+                hx-indicator="#global-spinner"
+            >
+                {{ crumb.name }}
+            </button>
+            <span class="text-slate-300">/</span>
+            {% endif %}
+        {% endfor %}
+    {% else %}
+    <span class="text-slate-500">Browse from any accessible root or search directly.</span>
+    {% endif %}
+</nav>

@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% set active_page = "dashboard" %}
+
+{% block title %}Dashboard | PMTCT Triple Elimination{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <section class="card-panel overflow-hidden">
+        <div class="grid gap-8 lg:grid-cols-[1.25fr_0.75fr]">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.25em] text-moh-green">Validation overview</p>
+                <h1 class="mt-3 text-3xl font-semibold text-slate-900">WHO scorecard review</h1>
+                <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+                    Generate the validation scorecard for any district or facility org unit, switch between monthly and weekly reporting periods, and extend the selectable history window when you need to review trends further back.
+                </p>
+            </div>
+            <div class="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5">
+                <h2 class="text-sm font-semibold uppercase tracking-[0.2em] text-emerald-700">Session note</h2>
+                <p class="mt-3 text-sm leading-6 text-emerald-900">
+                    Credentials are held only in server-side memory for this browser session. Closing the browser clears the session cookie.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="card-panel">
+        <form hx-post="/api/reports/scorecard" hx-target="#scorecard-results" hx-indicator="#global-spinner" class="grid gap-5 xl:grid-cols-6">
+            <div class="xl:col-span-2">
+                <label for="dashboard-org-unit" class="form-label">Organisation unit</label>
+                <select id="dashboard-org-unit" name="org_unit" class="form-select" required>
+                    {% for org_unit in org_units %}
+                    <option value="{{ org_unit.id }}">{{ org_unit.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div data-period-controls class="grid gap-5 sm:grid-cols-3 xl:col-span-3">
+                <div>
+                    <label for="dashboard-periodicity" class="form-label">Frequency</label>
+                    <select id="dashboard-periodicity" name="periodicity" data-periodicity-select class="form-select">
+                        {% for option in periodicity_options %}
+                        <option value="{{ option.id }}" {% if option.id == default_periodicity %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="dashboard-history-depth" class="form-label">History depth</label>
+                    <select id="dashboard-history-depth" name="history_depth" data-history-depth-select class="form-select">
+                        {% for option in history_depth_options %}
+                        <option value="{{ option.id }}" {% if option.id == default_history_depth %}selected{% endif %}>{{ option.label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="dashboard-period" class="form-label">Period</label>
+                    <select id="dashboard-period" name="period" data-period-select class="form-select" required>
+                        {% for period in periods %}
+                        <option value="{{ period.id }}">{{ period.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div>
+                <label for="dashboard-expected-pregnancies" class="form-label">Expected pregnancies</label>
+                <input id="dashboard-expected-pregnancies" name="expected_pregnancies" type="number" min="0" class="form-input" placeholder="Optional">
+            </div>
+
+            <div class="xl:col-span-6">
+                <button type="submit" class="primary-button">Generate scorecard</button>
+            </div>
+        </form>
+    </section>
+
+    <section id="scorecard-results">
+        {% include "components/scorecard_placeholder.html" %}
+    </section>
+</div>
+{% endblock %}

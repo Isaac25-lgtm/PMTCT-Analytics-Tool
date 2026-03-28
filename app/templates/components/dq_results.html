@@ -1,0 +1,72 @@
+<div class="space-y-6">
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <article class="metric-card">
+            <p class="metric-label">Checks run</p>
+            <p class="metric-value">{{ result.summary.total_checks }}</p>
+        </article>
+        <article class="metric-card">
+            <p class="metric-label">Passed</p>
+            <p class="metric-value text-emerald-700">{{ result.summary.passed }}</p>
+            <p class="mt-2 text-xs text-slate-400">{{ "%.1f"|format(result.summary.pass_rate) }}% pass rate</p>
+        </article>
+        <article class="metric-card">
+            <p class="metric-label">Warnings</p>
+            <p class="metric-value text-amber-600">{{ result.summary.warning_count }}</p>
+        </article>
+        <article class="metric-card">
+            <p class="metric-label">Critical</p>
+            <p class="metric-value text-rose-700">{{ result.summary.critical_count }}</p>
+        </article>
+        <article class="metric-card">
+            <p class="metric-label">Indicators checked</p>
+            <p class="metric-value">{{ result.indicators_checked|length }}</p>
+        </article>
+    </div>
+
+    {% if result.findings %}
+    <div class="space-y-4">
+        {% for finding in result.findings %}
+        <section class="card-panel border-l-4 {% if finding.severity.value == 'critical' %}border-rose-500{% elif finding.severity.value == 'warning' %}border-amber-500{% else %}border-sky-400{% endif %}">
+            <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <h2 class="text-lg font-semibold text-slate-900">{{ finding.rule_name }}</h2>
+                        <span class="status-badge {% if finding.severity.value == 'critical' %}status-danger{% elif finding.severity.value == 'warning' %}status-warning{% else %}status-unknown{% endif %}">
+                            {{ finding.severity.value|title }}
+                        </span>
+                        <span class="status-badge status-unknown">{{ finding.category.value|replace("_", " ")|title }}</span>
+                    </div>
+                    <p class="mt-3 text-sm leading-6 text-slate-700">{{ finding.message }}</p>
+                    <div class="mt-3 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-500">
+                        {% if finding.indicator_id %}
+                        <span>Indicator: {{ finding.indicator_id }}</span>
+                        {% endif %}
+                        {% if finding.current_value is not none %}
+                        <span>Current value: {{ finding.current_value }}</span>
+                        {% endif %}
+                        {% if finding.expected_range %}
+                        <span>Expected: {{ finding.expected_range }}</span>
+                        {% endif %}
+                    </div>
+                    {% if finding.recommendation %}
+                    <p class="mt-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-600">{{ finding.recommendation }}</p>
+                    {% endif %}
+                </div>
+                <div class="text-xs text-slate-400">
+                    {{ finding.rule_id }}
+                </div>
+            </div>
+        </section>
+        {% endfor %}
+    </div>
+    {% else %}
+    <section class="card-panel text-center">
+        <h2 class="text-xl font-semibold text-emerald-700">All checks passed</h2>
+        <p class="mt-2 text-sm text-slate-500">No data-quality issues were detected for this selection.</p>
+    </section>
+    {% endif %}
+
+    <p class="text-right text-xs text-slate-400">
+        Checked {{ result.checked_at.strftime("%Y-%m-%d %H:%M UTC") }}
+    </p>
+</div>

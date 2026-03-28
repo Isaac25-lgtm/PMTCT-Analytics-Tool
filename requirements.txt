@@ -1,0 +1,39 @@
+# Core framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+httpx==0.28.1
+pydantic==2.10.4
+pydantic-settings==2.7.1
+
+# Data processing
+pandas==2.2.3
+numpy==2.2.1
+
+# Templates & frontend
+jinja2==3.1.5
+python-multipart==0.0.20
+
+# Configuration
+pyyaml==6.0.2
+
+# Reports
+openpyxl==3.1.5
+weasyprint==63.1
+
+# Security & sessions
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+itsdangerous==2.2.0
+
+# AI integration (vendor-neutral)
+openai==1.58.1
+
+# Environment
+python-dotenv==1.0.1
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.25.0
+
+# Logging
+loguru==0.7.3

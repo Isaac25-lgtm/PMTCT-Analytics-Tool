@@ -1,0 +1,25 @@
+<article class="card-panel">
+    <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.2em] text-moh-green">Prompt 11 recommendations</p>
+            <h2 class="mt-2 text-xl font-semibold text-slate-900">Actionable recommendations</h2>
+        </div>
+        {% if insight.status.value == "success" %}
+        <span class="status-badge status-success">AI generated</span>
+        {% elif insight.status.value == "fallback" %}
+        <span class="status-badge status-warning">Rule-based fallback</span>
+        {% elif insight.status.value == "disabled" %}
+        <span class="status-badge status-unknown">LLM disabled</span>
+        {% else %}
+        <span class="status-badge status-danger">Generation error</span>
+        {% endif %}
+    </div>
+
+    <div class="mt-4 whitespace-pre-line text-sm leading-6 text-slate-700">
+        {{ insight.content }}
+    </div>
+
+    {% if insight.error_message %}
+    <p class="mt-4 text-xs text-amber-700">{{ insight.error_message }}</p>
+    {% endif %}
+</article>

@@ -1,0 +1,411 @@
+# =============================================================================
+# DHIS2 Data Element & Category Option Combo Mappings
+# PMTCT Triple Elimination Analytics Tool
+# =============================================================================
+# Source: Uganda HMIS / DHIS2 instance
+# IMPORTANT: Do not modify UIDs without verifying against the DHIS2 instance.
+# =============================================================================
+
+# ---------------------------------------------------------------------------
+# SECTION A: DATA ELEMENTS (49 total)
+# ---------------------------------------------------------------------------
+
+data_elements:
+
+  # --- HMIS 105 - ANC Section (19 elements) ---
+
+  AN01a:
+    name: "ANC 1st Visit for women"
+    uid: "Q9nSogNmKPt"
+    category_combo: "MCH Age"
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN01b:
+    name: "ANC 1st Visit - 1st Trimester"
+    uid: "uUYRrEU5iOB"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN14a:
+    name: "Syphilis tested"
+    uid: "YYhIhKT43kB"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN14b:
+    name: "Syphilis positive"
+    uid: "bBmnfOD3Yom"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN14c:
+    name: "Syphilis treated"
+    uid: "GWvftludKFF"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN15a:
+    name: "Partner syphilis tested"
+    uid: "vP5CjeYXgbB"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN16a:
+    name: "HBV tested (Total)"
+    uid: "aSlLg1v8apE"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN16b:
+    name: "HBV positive"
+    uid: "mhmGSvRwKlQ"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN17a:
+    name: "HIV tested (Total)"
+    uid: "uALBQG7TFhq"
+    category_combo: "MCH Age"
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN17b:
+    name: "HIV tested - ANC 1"
+    uid: "JFFBnljIWTT"
+    category_combo: "MCH Age"
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN18a:
+    name: "HIV+ 1st time (Total)"
+    uid: "uzlQdD84jNj"
+    category_combo: "MCH Age"
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN18b:
+    name: "HIV+ 1st time - ANC 1"
+    uid: "wFmMiaWgMIU"
+    category_combo: "MCH Age"
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN20a:
+    name: "ART - Known ART"
+    uid: "C0CnyVY3tm8"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN20b:
+    name: "ART - Newly Initiated"
+    uid: "ZjQgpP9G7m1"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN21:
+    name: "Known status before ANC (Total)"
+    uid: "rr3xZKoBXYt"
+    category_combo: "MCH Age & Test Result"
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN23a:
+    name: "VL eligible"
+    uid: "Y0Gaon8coI0"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN23b:
+    name: "VL samples collected"
+    uid: "IZKuxgNUZY2"
+    category_combo: "IPD Age & Sex"
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN23c:
+    name: "VL results returned"
+    uid: "LWE4kU4ttVW"
+    category_combo: "IPD Age & Sex"
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  AN23d:
+    name: "VL suppressed"
+    uid: "EyFiFBDoISI"
+    category_combo: "IPD Age & Sex"
+    dataset: "HMIS 105"
+    section: "ANC"
+
+  # --- HMIS 105 - Maternity Section (4 elements) ---
+
+  MA04:
+    name: "Total deliveries"
+    uid: "idXOxt69W0e"
+    category_combo: "MCH Age"
+    dataset: "HMIS 105"
+    section: "Maternity"
+
+  MA05a1:
+    name: "Live births Total"
+    uid: "fEz9wGsA6YU"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "Maternity"
+
+  MA21a:
+    name: "Deliveries to HIV+ women"
+    uid: "wOvonjgfh4b"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "Maternity"
+
+  MA22a:
+    name: "HEI given ARVs at birth"
+    uid: "OUGMxrtXxri"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "Maternity"
+
+  # --- HMIS 105 - EID Section (8 elements) ---
+
+  OE01:
+    name: "HEI registered in birth cohort"
+    uid: "ZMww1qHs2x5"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "EID"
+
+  OE03:
+    name: "HEI initiated ARV prophylaxis 0-6 weeks"
+    uid: "Venp30vvLNs"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "EID"
+
+  OE06:
+    name: "HEI with 1st DNA PCR by 2 months"
+    uid: "orb1cWkPsyT"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "EID"
+
+  OE11a:
+    name: "HEI tested HIV positive (final)"
+    uid: "GlYguWmulpn"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "EID"
+
+  OE12:
+    name: "HEI died before 18 months"
+    uid: "QJ92nRfu6aS"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "EID"
+
+  OE13:
+    name: "HEI transferred out before 18 months"
+    uid: "SOHitq9fGjD"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "EID"
+
+  OE14:
+    name: "HEI lost to follow-up before 18 months"
+    uid: "KxEgdz8c9Wi"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "EID"
+
+  OE15:
+    name: "HEI discharged HIV negative (final)"
+    uid: "KybCThzTucw"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "EID"
+
+  # --- HMIS 105 - Immunization Section (2 elements) ---
+
+  CL02:
+    name: "HepB birth dose (zero dose)"
+    uid: "yJgPv7Q9lS1"
+    category_combo: "HMIS 105B Doses"
+    dataset: "HMIS 105"
+    section: "Immunization"
+
+  CL12:
+    name: "DPT-HepB+Hib 3 (Penta 3)"
+    uid: "ujs4ipzA4tb"
+    category_combo: "EPI Age & Service Delivery Type"
+    dataset: "HMIS 105"
+    section: "Immunization"
+
+  # --- HMIS 105 - Hepatitis Section (2 elements) ---
+
+  HB10:
+    name: "HBV+ pregnant women"
+    uid: "fDQtdis81So"
+    category_combo: "HepB Age & Sex"
+    dataset: "HMIS 105"
+    section: "Hepatitis"
+
+  HB11:
+    name: "HBV+ pregnant women initiated on treatment"
+    uid: "fnoBIKW7Rah"
+    category_combo: "HepB Age & Sex"
+    dataset: "HMIS 105"
+    section: "Hepatitis"
+
+  # --- HMIS 105 - Stock Monthly (8 elements) ---
+
+  SS40a:
+    name: "HBsAg kits - Quantity Consumed"
+    uid: "lQRFuUgxIko"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "Stock Monthly"
+
+  SS40b:
+    name: "HBsAg kits - Days out of stock"
+    uid: "RMbAB4oIe3v"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "Stock Monthly"
+
+  SS40c:
+    name: "HBsAg kits - Stock on Hand"
+    uid: "AhfrSeifgVM"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "Stock Monthly"
+
+  SS40d:
+    name: "HBsAg kits - Quantity expired"
+    uid: "ObEurrF8fkT"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "Stock Monthly"
+
+  SS41a:
+    name: "HIV/Syphilis Duo kit - Quantity Consumed"
+    uid: "Y2rG87X018G"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "Stock Monthly"
+
+  SS41b:
+    name: "HIV/Syphilis Duo kit - Days out of stock"
+    uid: "uPxx6wu73ZL"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "Stock Monthly"
+
+  SS41c:
+    name: "HIV/Syphilis Duo kit - Stock on Hand"
+    uid: "FjDiDncMSYs"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "Stock Monthly"
+
+  SS41d:
+    name: "HIV/Syphilis Duo kit - Quantity expired"
+    uid: "WjRrKZXi5UA"
+    category_combo: null
+    dataset: "HMIS 105"
+    section: "Stock Monthly"
+
+  # --- HMIS 033b - Weekly (6 elements) ---
+
+  033B-AP04:
+    name: "Expected eMTCT Mothers on Appt"
+    uid: "dgGTqxmpNcc"
+    category_combo: null
+    dataset: "HMIS 033b"
+    section: "Weekly"
+
+  033B-AP05:
+    name: "eMTCT Missed Appointments"
+    uid: "mIBmV0slqJC"
+    category_combo: null
+    dataset: "HMIS 033b"
+    section: "Weekly"
+
+  033B-RV01:
+    name: "Determine HIV 1&2 screening test"
+    uid: "jxL73ftrOK9"
+    category_combo: null
+    dataset: "HMIS 033b"
+    section: "Weekly"
+
+  033B-RV02:
+    name: "Stat-pack HIV Confirmatory"
+    uid: "x1OHYkzZfuO"
+    category_combo: null
+    dataset: "HMIS 033b"
+    section: "Weekly"
+
+  033B-RV04:
+    name: "Nevirapine (NVP) 10mg/ml oral susp"
+    uid: "FIzJ2t9QFtd"
+    category_combo: null
+    dataset: "HMIS 033b"
+    section: "Weekly"
+
+  033B-RV05:
+    name: "TDF/3TC/DTG 300/300/50mg"
+    uid: "wgv5EESSIZE"
+    category_combo: null
+    dataset: "HMIS 033b"
+    section: "Weekly"
+
+
+# ---------------------------------------------------------------------------
+# SECTION B: CATEGORY OPTION COMBOS (5 total)
+# ---------------------------------------------------------------------------
+# Used to extract AN21-POS (Known HIV+ before ANC) from disaggregated data.
+# Parent data element: AN21 (uid: rr3xZKoBXYt)
+# Query format: {data_element_uid}.{coc_uid}
+# ---------------------------------------------------------------------------
+
+category_option_combos:
+
+  AN21_POS:
+    description: "Known HIV+ before ANC - sum of all positive age-group COCs"
+    parent_element: "AN21"
+    parent_uid: "rr3xZKoBXYt"
+    combos:
+      - age_group: "<15 Yrs"
+        result: "Positive"
+        coc_uid: "H9qJO0yGTKz"
+        query: "rr3xZKoBXYt.H9qJO0yGTKz"
+
+      - age_group: "15-19 Yrs"
+        result: "Positive"
+        coc_uid: "BaWI6qkhScq"
+        query: "rr3xZKoBXYt.BaWI6qkhScq"
+
+      - age_group: "20-24 Yrs"
+        result: "Positive"
+        coc_uid: "TvOOJYjd3iR"
+        query: "rr3xZKoBXYt.TvOOJYjd3iR"
+
+      - age_group: "25-49 Yrs"
+        result: "Positive"
+        coc_uid: "nmvDqGogEyw"
+        query: "rr3xZKoBXYt.nmvDqGogEyw"
+
+      - age_group: "50+ Yrs"
+        result: "Positive"
+        coc_uid: "fmyu6PJJeQW"
+        query: "rr3xZKoBXYt.fmyu6PJJeQW"

@@ -1,0 +1,38 @@
+<article class="card-panel">
+    <div class="flex flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+            <p class="text-sm font-semibold uppercase tracking-[0.2em] text-moh-green">Prompt 11 insight</p>
+            <h2 class="mt-2 text-xl font-semibold text-slate-900">{{ insight_title }}</h2>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+            {% if insight.status.value == "success" %}
+            <span class="status-badge status-success">AI generated</span>
+            {% elif insight.status.value == "fallback" %}
+            <span class="status-badge status-warning">Rule-based fallback</span>
+            {% elif insight.status.value == "disabled" %}
+            <span class="status-badge status-unknown">LLM disabled</span>
+            {% else %}
+            <span class="status-badge status-danger">Generation error</span>
+            {% endif %}
+
+            {% if insight.model_used %}
+            <span class="status-badge status-unknown font-mono">{{ insight.model_used }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-4 whitespace-pre-line text-sm leading-6 text-slate-700">
+        {{ insight.content }}
+    </div>
+
+    {% if insight.error_message %}
+    <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+        {{ insight.error_message }}
+    </div>
+    {% endif %}
+
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4 text-xs text-slate-400">
+        <span>Current-session grounded only</span>
+        <span>{{ insight.created_at.strftime("%Y-%m-%d %H:%M UTC") }}</span>
+    </div>
+</article>

@@ -1,0 +1,34 @@
+<div
+    class="flex flex-wrap items-center gap-2"
+    data-export-controls
+    data-export-type="{{ export_type }}"
+    data-org-unit="{{ org_unit }}"
+    data-period="{{ period }}"
+    data-org-unit-name="{{ org_unit_name or '' }}"
+    {% if export_type == "cascade" %}data-cascade-type="{{ cascade_type }}"{% endif %}
+    {% if expected_pregnancies is not none %}data-expected-pregnancies="{{ expected_pregnancies }}"{% endif %}
+>
+    <span class="mr-1 text-sm font-medium text-slate-500">Export</span>
+    <button
+        type="button"
+        onclick="window.handleExportDownload(this, 'pdf')"
+        class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+    >
+        PDF
+    </button>
+    <button
+        type="button"
+        onclick="window.handleExportDownload(this, 'xlsx')"
+        class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+    >
+        Excel
+    </button>
+    <button
+        type="button"
+        onclick="window.handleExportDownload(this, 'csv')"
+        class="inline-flex items-center rounded-full border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 transition hover:border-slate-400 hover:bg-slate-100"
+    >
+        CSV
+    </button>
+    <span data-export-status class="hidden text-sm font-medium text-slate-500">Generating...</span>
+</div>

@@ -1,0 +1,130 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main, staging]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Deployment target
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+jobs:
+  deploy:
+    name: Deploy to Render
+    runs-on: ubuntu-latest
+    environment: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.environment || (github.ref == 'refs/heads/main' && 'production' || 'staging') }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Resolve target environment
+        id: target
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            environment="${{ github.event.inputs.environment }}"
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            environment="production"
+          else
+            environment="staging"
+          fi
+
+          if [[ "$environment" == "production" ]]; then
+            echo "service_id=${{ secrets.RENDER_SERVICE_ID_PROD }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "service_id=${{ secrets.RENDER_SERVICE_ID_STAGING }}" >> "$GITHUB_OUTPUT"
+          fi
+          echo "environment=$environment" >> "$GITHUB_OUTPUT"
+
+          if [[ "$environment" == "production" && -z "${{ secrets.RENDER_SERVICE_ID_PROD }}" ]]; then
+            echo "Missing RENDER_SERVICE_ID_PROD secret"
+            exit 1
+          fi
+
+          if [[ "$environment" == "staging" && -z "${{ secrets.RENDER_SERVICE_ID_STAGING }}" ]]; then
+            echo "Missing RENDER_SERVICE_ID_STAGING secret"
+            exit 1
+          fi
+
+      - name: Trigger Render deploy
+        id: deploy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_ID: ${{ steps.target.outputs.service_id }}
+        shell: bash
+        run: |
+          response="$(curl -fsS -X POST \
+            "https://api.render.com/v1/services/${SERVICE_ID}/deploys" \
+            -H "Authorization: Bearer ${RENDER_API_KEY}" \
+            -H "Content-Type: application/json" \
+            -d '{"clearCache":"do_not_clear"}')"
+
+          deploy_id="$(echo "$response" | jq -r '.id')"
+          if [[ -z "$deploy_id" || "$deploy_id" == "null" ]]; then
+            echo "Failed to start deploy"
+            echo "$response"
+            exit 1
+          fi
+
+          service_response="$(curl -fsS \
+            "https://api.render.com/v1/services/${SERVICE_ID}" \
+            -H "Authorization: Bearer ${RENDER_API_KEY}")"
+          url="$(echo "$service_response" | jq -r '.serviceDetails.url')"
+
+          if [[ -z "$url" || "$url" == "null" ]]; then
+            echo "Failed to resolve Render service URL"
+            echo "$service_response"
+            exit 1
+          fi
+
+          echo "deploy_id=$deploy_id" >> "$GITHUB_OUTPUT"
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for Render deploy to finish
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          SERVICE_ID: ${{ steps.target.outputs.service_id }}
+          DEPLOY_ID: ${{ steps.deploy.outputs.deploy_id }}
+        shell: bash
+        run: |
+          for i in $(seq 1 30); do
+            status="$(curl -fsS \
+              "https://api.render.com/v1/services/${SERVICE_ID}/deploys/${DEPLOY_ID}" \
+              -H "Authorization: Bearer ${RENDER_API_KEY}" \
+              | jq -r '.status')"
+
+            echo "Deploy status: $status"
+
+            if [[ "$status" == "live" ]]; then
+              exit 0
+            fi
+
+            if [[ "$status" == "build_failed" || "$status" == "canceled" || "$status" == "failed" ]]; then
+              exit 1
+            fi
+
+            sleep 20
+          done
+
+          echo "Deployment timed out"
+          exit 1
+
+      - name: Health check deployed service
+        shell: bash
+        run: |
+          url="${{ steps.deploy.outputs.url }}"
+          for i in $(seq 1 12); do
+            if curl -fsS "${url}/health/ready"; then
+              exit 0
+            fi
+            sleep 10
+          done
+          exit 1

@@ -1,0 +1,156 @@
+# Alert thresholds for Prompt 10.
+#
+# This configuration is intentionally monthly-only for now. Weekly indicators
+# such as SYS-03 are excluded until the alerts UI supports frequency selection.
+
+thresholds:
+  - id: WHO-CRITICAL
+    name: WHO Indicator Critically Below Target
+    description: WHO validation indicator below 70% of target.
+    indicator_ids:
+      - VAL-01
+      - VAL-02
+      - VAL-03
+      - VAL-04
+      - VAL-05
+      - VAL-06
+    alert_type: critical_below_target
+    severity: critical
+    category: indicator
+    operator: lt
+    use_target: true
+    target_multiplier: 0.7
+    enabled: true
+
+  - id: WHO-WARNING
+    name: WHO Indicator Below Target
+    description: WHO validation indicator below target.
+    indicator_ids:
+      - VAL-01
+      - VAL-02
+      - VAL-03
+      - VAL-04
+      - VAL-05
+      - VAL-06
+    alert_type: below_target
+    severity: warning
+    category: indicator
+    operator: lt
+    use_target: true
+    target_multiplier: 1.0
+    enabled: true
+
+  - id: HBV-TREATMENT
+    name: HBV Treatment Below Target
+    description: HBV treatment initiation is below target.
+    indicator_ids:
+      - HBV-05
+    alert_type: below_target
+    severity: warning
+    category: indicator
+    operator: lt
+    use_target: true
+    target_multiplier: 1.0
+    enabled: true
+
+  - id: HIV-VL-SUPPRESSION
+    name: Low Viral Load Suppression
+    description: Viral load suppression is below 90%.
+    indicator_ids:
+      - HIV-05
+    alert_type: below_target
+    severity: warning
+    category: indicator
+    operator: lt
+    value: 90.0
+    enabled: true
+
+  - id: HIV-EID-COVERAGE
+    name: Low EID Coverage
+    description: Early infant diagnosis by 2 months is below 80%.
+    indicator_ids:
+      - HIV-07
+    alert_type: below_target
+    severity: warning
+    category: indicator
+    operator: lt
+    value: 80.0
+    enabled: true
+
+  - id: SUPPLY-STOCKOUT
+    name: Stockout
+    description: Derived stock on hand is zero for the days-of-use indicator.
+    indicator_ids:
+      - SUP-05
+      - SUP-06
+    alert_type: stockout
+    severity: critical
+    category: supply
+    operator: eq
+    value: 0.0
+    value_source: numerator_value
+    enabled: true
+
+  - id: SUPPLY-IMMINENT
+    name: Imminent Stockout
+    description: Days of use is below 7 days.
+    indicator_ids:
+      - SUP-05
+      - SUP-06
+    alert_type: imminent_stockout
+    severity: critical
+    category: supply
+    operator: lt
+    value: 7.0
+    enabled: true
+
+  - id: SUPPLY-LOW
+    name: Low Stock
+    description: Days of use is below 30 days.
+    indicator_ids:
+      - SUP-05
+      - SUP-06
+    alert_type: low_stock
+    severity: warning
+    category: supply
+    operator: lt
+    value: 30.0
+    enabled: true
+
+  - id: SUPPLY-OVERSTOCK
+    name: Overstock
+    description: Days of use exceeds 180 days.
+    indicator_ids:
+      - SUP-05
+      - SUP-06
+    alert_type: overstock
+    severity: info
+    category: supply
+    operator: gt
+    value: 180.0
+    enabled: true
+
+  - id: SUPPLY-STOCKOUT-DAYS
+    name: Stockout Days Reported
+    description: Facility reported one or more stockout days.
+    indicator_ids:
+      - SUP-02
+      - SUP-04
+    alert_type: stockout_days
+    severity: warning
+    category: supply
+    operator: gt
+    value: 0.0
+    enabled: true
+
+  - id: SYS-COMPLETENESS
+    name: Low Reporting Completeness
+    description: Monthly reporting completeness is below 80%.
+    indicator_ids:
+      - SYS-01
+    alert_type: low_completeness
+    severity: warning
+    category: system
+    operator: lt
+    value: 80.0
+    enabled: true

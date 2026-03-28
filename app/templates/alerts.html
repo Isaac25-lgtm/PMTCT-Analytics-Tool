@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% set active_page = "alerts" %}
+
+{% block title %}Alerts | PMTCT Triple Elimination{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <section class="card-panel overflow-hidden">
+        <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.25em] text-moh-green">Prompt 10 alerts</p>
+                <h1 class="mt-3 text-3xl font-semibold text-slate-900">Monthly threshold monitoring</h1>
+                <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+                    Review threshold-based alerts generated from the live calculator output, monthly supply indicators, and Prompt 9 data-quality summaries. This dashboard is intentionally limited to monthly periods for now, so weekly metrics such as SYS-03 remain out of scope until frequency selection is added here.
+                </p>
+            </div>
+            <div class="rounded-3xl border border-sky-100 bg-sky-50/80 p-5">
+                <h2 class="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700">What is included</h2>
+                <p class="mt-3 text-sm leading-6 text-sky-900">
+                    Alerts cover WHO validation performance, selected HIV and HBV monthly indicators, supply stock status derived from days-of-use outputs, stockout days, reporting completeness, and DQ critical or warning totals.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="card-panel">
+        <form id="alert-filter-form" class="grid gap-5 xl:grid-cols-6">
+            <div class="xl:col-span-2">
+                <label for="alert-org-unit" class="form-label">Organisation unit</label>
+                <select id="alert-org-unit" name="org_unit" class="form-select" required>
+                    {% for org_unit in org_units %}
+                    <option value="{{ org_unit.id }}" {% if org_unit.id == selected_org_unit %}selected{% endif %}>{{ org_unit.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="alert-period" class="form-label">Monthly period</label>
+                <select id="alert-period" name="period" class="form-select" required>
+                    {% for period in periods %}
+                    <option value="{{ period.id }}" {% if period.id == selected_period %}selected{% endif %}>{{ period.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="alert-severity" class="form-label">Severity</label>
+                <select id="alert-severity" name="severity" class="form-select">
+                    <option value="">All severities</option>
+                    <option value="critical">Critical</option>
+                    <option value="warning">Warning</option>
+                    <option value="info">Info</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="alert-category" class="form-label">Category</label>
+                <select id="alert-category" name="category" class="form-select">
+                    <option value="">All categories</option>
+                    <option value="indicator">Indicator</option>
+                    <option value="supply">Supply</option>
+                    <option value="system">System</option>
+                    <option value="data_quality">Data quality</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="alert-include-acknowledged" class="form-label">Acknowledged</label>
+                <select id="alert-include-acknowledged" name="include_acknowledged" class="form-select">
+                    <option value="true" selected>Show all</option>
+                    <option value="false">Hide acknowledged</option>
+                </select>
+            </div>
+
+            <div class="xl:col-span-6 flex justify-end">
+                <button id="run-alert-evaluation" type="button" class="primary-button">Evaluate alerts</button>
+            </div>
+        </form>
+    </section>
+
+    <section
+        id="alert-badge-container"
+        hx-get="/api/alerts/htmx/badge"
+        hx-include="#alert-filter-form"
+        hx-trigger="click from:#run-alert-evaluation, refresh-alert-badge from:body"
+        hx-target="#alert-badge-container"
+        hx-swap="outerHTML"
+        hx-indicator="#global-spinner"
+    >
+        <article class="card-panel">
+            <p class="text-sm text-slate-500">Run the monthly alert evaluation to see a summary badge for the selected filters.</p>
+        </article>
+    </section>
+
+    <section
+        id="alert-results-container"
+        hx-get="/api/alerts/htmx/list"
+        hx-include="#alert-filter-form"
+        hx-trigger="click from:#run-alert-evaluation"
+        hx-target="#alert-results-container"
+        hx-swap="outerHTML"
+        hx-indicator="#global-spinner"
+    >
+        <article class="card-panel text-center">
+            <h2 class="text-2xl font-semibold text-slate-900">Ready to evaluate</h2>
+            <p class="mt-2 text-sm text-slate-500">Choose a monthly period and alert filters, then run the evaluation.</p>
+        </article>
+    </section>
+</div>
+{% endblock %}

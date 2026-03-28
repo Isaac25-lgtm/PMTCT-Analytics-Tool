@@ -1,0 +1,81 @@
+services:
+  - type: web
+    name: pmtct-triple-elimination
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: standard
+    numInstances: 1
+    autoDeploy: true
+    healthCheckPath: /health/ready
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      - key: LOG_FORMAT
+        value: json
+      - key: SESSION_TIMEOUT_MINUTES
+        value: "60"
+      - key: CACHE_ENABLED
+        value: "true"
+      - key: CACHE_MAX_SIZE
+        value: "10000"
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: CSRF_ENABLED
+        value: "true"
+      - key: AUDIT_ENABLED
+        value: "true"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: LLM_PROVIDER
+        value: anthropic
+      - key: DHIS2_BASE_URL
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+
+  - type: web
+    name: pmtct-staging
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    branch: staging
+    plan: starter
+    numInstances: 1
+    autoDeploy: true
+    healthCheckPath: /health/ready
+    envVars:
+      - key: APP_ENV
+        value: staging
+      - key: LOG_LEVEL
+        value: DEBUG
+      - key: LOG_FORMAT
+        value: json
+      - key: SESSION_TIMEOUT_MINUTES
+        value: "120"
+      - key: CACHE_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: CSRF_ENABLED
+        value: "true"
+      - key: AUDIT_ENABLED
+        value: "true"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: LLM_PROVIDER
+        value: anthropic
+      - key: DHIS2_BASE_URL
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true

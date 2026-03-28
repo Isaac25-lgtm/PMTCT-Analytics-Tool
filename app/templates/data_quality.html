@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% set active_page = "data_quality" %}
+
+{% block title %}Data Quality | PMTCT Triple Elimination{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <section class="card-panel overflow-hidden">
+        <div class="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+            <div>
+                <p class="text-sm font-semibold uppercase tracking-[0.25em] text-moh-green">Data quality</p>
+                <h1 class="mt-3 text-3xl font-semibold text-slate-900">Consistency and anomaly review</h1>
+                <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
+                    Run cross-indicator checks on live calculator output to spot negative values, implausible percentages, cascade inconsistencies, repeated reporting patterns, and mismatches between service volume and commodity use.
+                </p>
+            </div>
+            <div class="rounded-3xl border border-sky-100 bg-sky-50/80 p-5">
+                <h2 class="text-sm font-semibold uppercase tracking-[0.2em] text-sky-700">Scoring</h2>
+                <p class="mt-3 text-sm leading-6 text-sky-900">
+                    The DQ score starts at 100 and applies heavier penalties to critical issues than warnings or informational findings. Monthly indicators also run historical outlier and repeated-value checks.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="card-panel">
+        <form id="dq-filter-form" class="grid gap-5 xl:grid-cols-5">
+            <div class="xl:col-span-2">
+                <label for="dq-org-unit" class="form-label">Organisation unit</label>
+                <select id="dq-org-unit" name="org_unit" class="form-select" required>
+                    {% for org_unit in org_units %}
+                    <option value="{{ org_unit.id }}" {% if org_unit.id == selected_org_unit %}selected{% endif %}>{{ org_unit.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="xl:col-span-2">
+                <label for="dq-period" class="form-label">Period</label>
+                <select id="dq-period" name="period" class="form-select" required>
+                    {% for period in periods %}
+                    <option value="{{ period.id }}" {% if period.id == selected_period %}selected{% endif %}>{{ period.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="flex items-end">
+                <button id="run-dq-checks" type="button" class="primary-button w-full">Run DQ checks</button>
+            </div>
+        </form>
+    </section>
+
+    <section
+        id="dq-score-container"
+        hx-get="/api/data-quality/htmx/score-card"
+        hx-include="#dq-filter-form"
+        hx-trigger="click from:#run-dq-checks"
+        hx-target="#dq-score-container"
+        hx-indicator="#global-spinner"
+    >
+        <article class="card-panel">
+            <p class="text-sm text-slate-500">Run checks to see the current data-quality score.</p>
+        </article>
+    </section>
+
+    <section
+        id="dq-results-container"
+        hx-get="/api/data-quality/htmx/results"
+        hx-include="#dq-filter-form"
+        hx-trigger="click from:#run-dq-checks"
+        hx-target="#dq-results-container"
+        hx-indicator="#global-spinner"
+    >
+        <article class="card-panel text-center">
+            <h2 class="text-xl font-semibold text-slate-900">Ready to review</h2>
+            <p class="mt-2 text-sm text-slate-500">Choose an organisation unit and reporting period, then run the checks.</p>
+        </article>
+    </section>
+</div>
+{% endblock %}

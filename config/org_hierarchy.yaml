@@ -1,0 +1,38 @@
+hierarchy:
+  levels:
+    1:
+      name: "National"
+      short_name: "Nat"
+      can_aggregate_children: true
+      typical_count: 1
+    2:
+      name: "Regional"
+      short_name: "Reg"
+      can_aggregate_children: true
+      typical_count: 5
+    3:
+      name: "District"
+      short_name: "Dist"
+      can_aggregate_children: true
+      typical_count: 135
+    4:
+      name: "Sub-county/HSD"
+      short_name: "HSD"
+      can_aggregate_children: true
+      typical_count: 1500
+    5:
+      name: "Facility"
+      short_name: "Fac"
+      can_aggregate_children: false
+      typical_count: 7000
+  max_children_display: 50
+  aggregation_levels:
+    - 1
+    - 2
+    - 3
+    - 4
+  drill_down_levels:
+    - 1
+    - 2
+    - 3
+    - 4

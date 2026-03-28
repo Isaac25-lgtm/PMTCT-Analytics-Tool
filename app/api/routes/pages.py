@@ -8,6 +8,7 @@ requests and JSON for non-HTMX callers.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, Request, status
@@ -34,6 +35,7 @@ from app.services.trends import TrendService
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 trend_service = TrendService()
+logger = logging.getLogger("app.pages")
 
 # Range period list covers 36 months for From/To selectors
 _RANGE_PERIOD_COUNT = 36
@@ -52,13 +54,47 @@ async def build_page_context(request: Request, session: Any) -> dict[str, Any]:
     """Build the shared template context for authenticated pages."""
     credentials = session.credentials
     role_info = get_role_from_session(session)
+    logger.info(
+        "Building page context",
+        extra={
+            "path": request.url.path,
+            "session_id": session.session_id,
+            "user_id": credentials.user_id if credentials else None,
+            "user_name": credentials.user_name if credentials else None,
+            "org_unit_count": len(credentials.org_units) if credentials and credentials.org_units else 0,
+        },
+    )
     permissions = sorted(
         permission.value for permission in get_user_permissions(role_info)
     ) if role_info else []
     org_unit_service = build_cached_org_unit_service(session)
-    selector_roots = await org_unit_service.get_user_roots()
+    try:
+        selector_roots = await org_unit_service.get_user_roots()
+    except Exception:
+        logger.exception(
+            "Failed to load organisation-unit roots for page context",
+            extra={
+                "path": request.url.path,
+                "session_id": session.session_id,
+                "user_id": credentials.user_id if credentials else None,
+                "user_name": credentials.user_name if credentials else None,
+                "dhis2_base_url": credentials.base_url if credentials else None,
+                "org_unit_count": len(credentials.org_units) if credentials and credentials.org_units else 0,
+            },
+        )
+        raise
     selector_selected_node = None
     selector_breadcrumbs: list[dict[str, Any]] = []
+
+    logger.info(
+        "Page context ready",
+        extra={
+            "path": request.url.path,
+            "session_id": session.session_id,
+            "selector_root_count": len(selector_roots),
+            "permission_count": len(permissions),
+        },
+    )
 
     return {
         "request": request,
@@ -120,9 +156,34 @@ async def dashboard_page(request: Request) -> HTMLResponse:
     if not session:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
-    context = await build_page_context(request, session)
-    context["active_page"] = "dashboard"
-    return templates.TemplateResponse(request, "dashboard.html", context)
+    try:
+        context = await build_page_context(request, session)
+        context["active_page"] = "dashboard"
+        response = templates.TemplateResponse(request, "dashboard.html", context)
+    except Exception:
+        credentials = session.credentials
+        logger.exception(
+            "Dashboard render failed",
+            extra={
+                "path": request.url.path,
+                "session_id": session.session_id,
+                "user_id": credentials.user_id if credentials else None,
+                "user_name": credentials.user_name if credentials else None,
+                "dhis2_base_url": credentials.base_url if credentials else None,
+                "org_unit_count": len(credentials.org_units) if credentials and credentials.org_units else 0,
+            },
+        )
+        raise
+
+    logger.info(
+        "Dashboard render succeeded",
+        extra={
+            "path": request.url.path,
+            "session_id": session.session_id,
+            "selector_root_count": len(context.get("selector_roots", [])),
+        },
+    )
+    return response
 
 
 @router.get("/indicators", response_class=HTMLResponse)

@@ -4,9 +4,12 @@ API tests for HTML page routes.
 
 from __future__ import annotations
 
+import re
+
 import pytest
 
 from app.auth.roles import resolve_user_role
+from tests.conftest import TEST_ORG_UNIT
 
 
 @pytest.mark.api
@@ -115,6 +118,16 @@ class TestProtectedPages:
         assert "AI-assisted programme interpretation" in response.text
         assert "Current-session Q&amp;A" in response.text
         assert "Select an organisation unit" in response.text
+
+    def test_insights_page_preselects_first_accessible_org_unit(self, authenticated_client) -> None:
+        response = authenticated_client.get("/insights")
+
+        assert response.status_code == 200
+        assert "No organisation unit selected yet." not in response.text
+        assert re.search(
+            rf'id="insight-org-unit-selector-input"[\s\S]*?value="{TEST_ORG_UNIT}"',
+            response.text,
+        )
 
     def test_trends_page_renders(self, authenticated_client) -> None:
         response = authenticated_client.get("/trends")

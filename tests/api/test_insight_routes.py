@@ -234,6 +234,34 @@ class TestInsightHtmxRoutes:
         assert "Executive summary" in response.text
         assert "supply risk concentrated" in response.text
 
+    def test_htmx_executive_summary_falls_back_to_session_org_unit(
+        self,
+        client,
+        valid_session,
+        mock_calculator,
+        override_dependencies,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr("app.api.routes.alerts._alert_engines", {})
+        override_dependencies(session=valid_session, calculator=mock_calculator)
+        with patch(
+            "app.api.routes.insights.AIInsightsEngine.generate_executive_summary",
+            new=AsyncMock(
+                return_value=sample_envelope(
+                    InsightType.EXECUTIVE_SUMMARY,
+                    content="Fallback org-unit selection worked.",
+                )
+            ),
+        ) as generate_summary:
+            response = client.get(
+                f"/api/insights/htmx/executive-summary?org_unit=&period={TEST_PERIOD}",
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 200
+        assert "Fallback org-unit selection worked." in response.text
+        generate_summary.assert_awaited_once_with(org_unit=TEST_ORG_UNIT, period=TEST_PERIOD)
+
     def test_htmx_qa_returns_html(
         self,
         client,

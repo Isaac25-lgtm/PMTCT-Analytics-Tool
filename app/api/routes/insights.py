@@ -6,7 +6,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any, AsyncIterator
 
-from fastapi import APIRouter, Depends, Form, Query, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -144,6 +144,22 @@ async def _run_with_audit(
     return response
 
 
+def _resolve_org_unit(session: CurrentSession, org_unit: str | None) -> str:
+    """Normalize or infer the org-unit UID for the current insight request."""
+    normalized = (org_unit or "").strip()
+    if normalized:
+        return normalized
+
+    credentials = session.credentials
+    if credentials:
+        for candidate in credentials.org_units:
+            candidate_uid = candidate.get("id")
+            if candidate_uid:
+                return candidate_uid
+
+    raise HTTPException(status_code=400, detail="No organisation unit selected")
+
+
 async def _cached_insight_response(
     session_cache: SessCache,
     cache_key: str,
@@ -165,12 +181,13 @@ async def post_indicator_insight(
     session_cache: SessCache,
 ) -> dict[str, Any]:
     """Generate a single-indicator insight as JSON."""
+    resolved_org_unit = _resolve_org_unit(session, request_body.org_unit)
     return (
         await _cached_insight_response(
             session_cache,
             CacheKeys.ai_insight(
                 "indicator",
-                request_body.org_unit,
+                resolved_org_unit,
                 request_body.period,
                 indicator_id=request_body.indicator_id,
                 history_depth=request_body.history_depth,
@@ -178,10 +195,10 @@ async def post_indicator_insight(
             lambda: _run_with_audit(
                 session,
                 "indicator",
-                request_body.org_unit,
+                resolved_org_unit,
                 lambda: engine.generate_indicator_insight(
                     indicator_id=request_body.indicator_id,
-                    org_unit=request_body.org_unit,
+                    org_unit=resolved_org_unit,
                     period=request_body.period,
                     include_trend=request_body.include_trend,
                     history_depth=request_body.history_depth,
@@ -199,22 +216,23 @@ async def post_cascade_insight(
     session_cache: SessCache,
 ) -> dict[str, Any]:
     """Generate cascade analysis as JSON."""
+    resolved_org_unit = _resolve_org_unit(session, request_body.org_unit)
     return (
         await _cached_insight_response(
             session_cache,
             CacheKeys.ai_insight(
                 "cascade",
-                request_body.org_unit,
+                resolved_org_unit,
                 request_body.period,
                 cascade=request_body.cascade,
             ),
             lambda: _run_with_audit(
                 session,
                 f"cascade:{request_body.cascade}",
-                request_body.org_unit,
+                resolved_org_unit,
                 lambda: engine.generate_cascade_insight(
                     cascade=request_body.cascade,
-                    org_unit=request_body.org_unit,
+                    org_unit=resolved_org_unit,
                     period=request_body.period,
                 ),
             ),
@@ -230,16 +248,17 @@ async def post_alert_insight(
     session_cache: SessCache,
 ) -> dict[str, Any]:
     """Generate alert synthesis as JSON."""
+    resolved_org_unit = _resolve_org_unit(session, request_body.org_unit)
     return (
         await _cached_insight_response(
             session_cache,
-            CacheKeys.ai_insight("alerts", request_body.org_unit, request_body.period),
+            CacheKeys.ai_insight("alerts", resolved_org_unit, request_body.period),
             lambda: _run_with_audit(
                 session,
                 "alerts",
-                request_body.org_unit,
+                resolved_org_unit,
                 lambda: engine.generate_alert_insight(
-                    org_unit=request_body.org_unit,
+                    org_unit=resolved_org_unit,
                     period=request_body.period,
                 ),
             ),
@@ -255,16 +274,17 @@ async def post_dq_insight(
     session_cache: SessCache,
 ) -> dict[str, Any]:
     """Generate a DQ explanation as JSON."""
+    resolved_org_unit = _resolve_org_unit(session, request_body.org_unit)
     return (
         await _cached_insight_response(
             session_cache,
-            CacheKeys.ai_insight("data_quality", request_body.org_unit, request_body.period),
+            CacheKeys.ai_insight("data_quality", resolved_org_unit, request_body.period),
             lambda: _run_with_audit(
                 session,
                 "data_quality",
-                request_body.org_unit,
+                resolved_org_unit,
                 lambda: engine.generate_dq_insight(
-                    org_unit=request_body.org_unit,
+                    org_unit=resolved_org_unit,
                     period=request_body.period,
                 ),
             ),
@@ -280,16 +300,17 @@ async def post_executive_summary(
     session_cache: SessCache,
 ) -> dict[str, Any]:
     """Generate an executive summary as JSON."""
+    resolved_org_unit = _resolve_org_unit(session, request_body.org_unit)
     return (
         await _cached_insight_response(
             session_cache,
-            CacheKeys.ai_insight("executive_summary", request_body.org_unit, request_body.period),
+            CacheKeys.ai_insight("executive_summary", resolved_org_unit, request_body.period),
             lambda: _run_with_audit(
                 session,
                 "executive_summary",
-                request_body.org_unit,
+                resolved_org_unit,
                 lambda: engine.generate_executive_summary(
-                    org_unit=request_body.org_unit,
+                    org_unit=resolved_org_unit,
                     period=request_body.period,
                 ),
             ),
@@ -305,22 +326,23 @@ async def post_recommendations(
     session_cache: SessCache,
 ) -> dict[str, Any]:
     """Generate indicator recommendations as JSON."""
+    resolved_org_unit = _resolve_org_unit(session, request_body.org_unit)
     return (
         await _cached_insight_response(
             session_cache,
             CacheKeys.ai_insight(
                 "recommendations",
-                request_body.org_unit,
+                resolved_org_unit,
                 request_body.period,
                 indicator_id=request_body.indicator_id,
             ),
             lambda: _run_with_audit(
                 session,
                 "recommendations",
-                request_body.org_unit,
+                resolved_org_unit,
                 lambda: engine.generate_recommendations(
                     indicator_id=request_body.indicator_id,
-                    org_unit=request_body.org_unit,
+                    org_unit=resolved_org_unit,
                     period=request_body.period,
                 ),
             ),
@@ -336,22 +358,23 @@ async def post_qa(
     session_cache: SessCache,
 ) -> dict[str, Any]:
     """Answer a current-session question as JSON."""
+    resolved_org_unit = _resolve_org_unit(session, request_body.org_unit)
     return (
         await _cached_insight_response(
             session_cache,
             CacheKeys.ai_insight(
                 "qa",
-                request_body.org_unit,
+                resolved_org_unit,
                 request_body.period,
                 question=request_body.question,
             ),
             lambda: _run_with_audit(
                 session,
                 "qa",
-                request_body.org_unit,
+                resolved_org_unit,
                 lambda: engine.generate_qa_response(
                     question=request_body.question,
-                    org_unit=request_body.org_unit,
+                    org_unit=resolved_org_unit,
                     period=request_body.period,
                 ),
             ),
@@ -372,11 +395,12 @@ async def htmx_indicator_card(
     history_depth: str = Query(default="12m"),
 ) -> HTMLResponse:
     """Render the indicator insight card partial."""
+    resolved_org_unit = _resolve_org_unit(session, org_unit)
     response = await _cached_insight_response(
         session_cache,
         CacheKeys.ai_insight(
             "indicator",
-            org_unit,
+            resolved_org_unit,
             period,
             indicator_id=indicator_id,
             history_depth=history_depth,
@@ -384,10 +408,10 @@ async def htmx_indicator_card(
         lambda: _run_with_audit(
             session,
             "indicator",
-            org_unit,
+            resolved_org_unit,
             lambda: engine.generate_indicator_insight(
                 indicator_id=indicator_id,
-                org_unit=org_unit,
+                org_unit=resolved_org_unit,
                 period=period,
                 include_trend=include_trend,
                 history_depth=history_depth,
@@ -416,16 +440,17 @@ async def htmx_cascade_card(
     period: str = Query(...),
 ) -> HTMLResponse:
     """Render the cascade insight card partial."""
+    resolved_org_unit = _resolve_org_unit(session, org_unit)
     response = await _cached_insight_response(
         session_cache,
-        CacheKeys.ai_insight("cascade", org_unit, period, cascade=cascade),
+        CacheKeys.ai_insight("cascade", resolved_org_unit, period, cascade=cascade),
         lambda: _run_with_audit(
             session,
             f"cascade:{cascade}",
-            org_unit,
+            resolved_org_unit,
             lambda: engine.generate_cascade_insight(
                 cascade=cascade,
-                org_unit=org_unit,
+                org_unit=resolved_org_unit,
                 period=period,
             ),
         ),
@@ -451,14 +476,15 @@ async def htmx_alerts(
     period: str = Query(...),
 ) -> HTMLResponse:
     """Render the alert synthesis card partial."""
+    resolved_org_unit = _resolve_org_unit(session, org_unit)
     response = await _cached_insight_response(
         session_cache,
-        CacheKeys.ai_insight("alerts", org_unit, period),
+        CacheKeys.ai_insight("alerts", resolved_org_unit, period),
         lambda: _run_with_audit(
             session,
             "alerts",
-            org_unit,
-            lambda: engine.generate_alert_insight(org_unit=org_unit, period=period),
+            resolved_org_unit,
+            lambda: engine.generate_alert_insight(org_unit=resolved_org_unit, period=period),
         ),
     )
     return templates.TemplateResponse(
@@ -482,14 +508,15 @@ async def htmx_data_quality(
     period: str = Query(...),
 ) -> HTMLResponse:
     """Render the DQ insight card partial."""
+    resolved_org_unit = _resolve_org_unit(session, org_unit)
     response = await _cached_insight_response(
         session_cache,
-        CacheKeys.ai_insight("data_quality", org_unit, period),
+        CacheKeys.ai_insight("data_quality", resolved_org_unit, period),
         lambda: _run_with_audit(
             session,
             "data_quality",
-            org_unit,
-            lambda: engine.generate_dq_insight(org_unit=org_unit, period=period),
+            resolved_org_unit,
+            lambda: engine.generate_dq_insight(org_unit=resolved_org_unit, period=period),
         ),
     )
     return templates.TemplateResponse(
@@ -514,21 +541,22 @@ async def htmx_recommendations(
     period: str = Query(...),
 ) -> HTMLResponse:
     """Render the recommendation partial."""
+    resolved_org_unit = _resolve_org_unit(session, org_unit)
     response = await _cached_insight_response(
         session_cache,
         CacheKeys.ai_insight(
             "recommendations",
-            org_unit,
+            resolved_org_unit,
             period,
             indicator_id=indicator_id,
         ),
         lambda: _run_with_audit(
             session,
             "recommendations",
-            org_unit,
+            resolved_org_unit,
             lambda: engine.generate_recommendations(
                 indicator_id=indicator_id,
-                org_unit=org_unit,
+                org_unit=resolved_org_unit,
                 period=period,
             ),
         ),
@@ -553,14 +581,15 @@ async def htmx_executive_summary(
     period: str = Query(...),
 ) -> HTMLResponse:
     """Render the executive summary card partial."""
+    resolved_org_unit = _resolve_org_unit(session, org_unit)
     response = await _cached_insight_response(
         session_cache,
-        CacheKeys.ai_insight("executive_summary", org_unit, period),
+        CacheKeys.ai_insight("executive_summary", resolved_org_unit, period),
         lambda: _run_with_audit(
             session,
             "executive_summary",
-            org_unit,
-            lambda: engine.generate_executive_summary(org_unit=org_unit, period=period),
+            resolved_org_unit,
+            lambda: engine.generate_executive_summary(org_unit=resolved_org_unit, period=period),
         ),
     )
     return templates.TemplateResponse(
@@ -585,16 +614,17 @@ async def htmx_qa(
     period: str = Form(...),
 ) -> HTMLResponse:
     """Render the Q&A response partial."""
+    resolved_org_unit = _resolve_org_unit(session, org_unit)
     response = await _cached_insight_response(
         session_cache,
-        CacheKeys.ai_insight("qa", org_unit, period, question=question),
+        CacheKeys.ai_insight("qa", resolved_org_unit, period, question=question),
         lambda: _run_with_audit(
             session,
             "qa",
-            org_unit,
+            resolved_org_unit,
             lambda: engine.generate_qa_response(
                 question=question,
-                org_unit=org_unit,
+                org_unit=resolved_org_unit,
                 period=period,
             ),
         ),

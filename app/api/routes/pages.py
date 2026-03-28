@@ -50,6 +50,53 @@ def _get_fertility_rate() -> float:
         return 0.05
 
 
+async def _set_selector_state(
+    context: dict[str, Any],
+    session: Any,
+    requested_org_unit: str | None,
+) -> str | None:
+    """Synchronize the shared selector state with the active org-unit choice."""
+    selector_roots = context.get("selector_roots") or []
+    default_root = selector_roots[0] if selector_roots else None
+    selected_org_unit = (requested_org_unit or "").strip() or (
+        default_root.uid if default_root else None
+    )
+
+    if selected_org_unit is None:
+        context["selector_selected_node"] = None
+        context["selector_breadcrumbs"] = []
+        return None
+
+    root_lookup = {
+        root.uid: root
+        for root in selector_roots
+        if getattr(root, "uid", None)
+    }
+    selected_root = root_lookup.get(selected_org_unit)
+    if selected_root is not None:
+        context["selector_selected_node"] = selected_root
+        context["selector_breadcrumbs"] = []
+        return selected_root.uid
+
+    org_unit_service = build_cached_org_unit_service(session)
+    try:
+        context["selector_selected_node"] = await org_unit_service.get_node_with_context(selected_org_unit)
+        context["selector_breadcrumbs"] = await org_unit_service.get_breadcrumbs(selected_org_unit)
+        return selected_org_unit
+    except Exception:
+        logger.warning(
+            "Falling back to default organisation-unit selector state",
+            extra={
+                "requested_org_unit": selected_org_unit,
+                "session_id": getattr(session, "session_id", None),
+            },
+            exc_info=True,
+        )
+        context["selector_selected_node"] = default_root
+        context["selector_breadcrumbs"] = []
+        return default_root.uid if default_root else None
+
+
 async def build_page_context(request: Request, session: Any) -> dict[str, Any]:
     """Build the shared template context for authenticated pages."""
     credentials = session.credentials
@@ -346,9 +393,7 @@ async def insights_page(
     context["selected_history_depth"] = (
         history_depth if history_depth in valid_history_depths else context["default_history_depth"]
     )
-    context["selected_org_unit"] = org_unit or (
-        context["org_units"][0].get("id") if context.get("org_units") else None
-    )
+    context["selected_org_unit"] = await _set_selector_state(context, session, org_unit)
     context["selected_period"] = period or (
         context["periods"][0]["id"] if context.get("periods") else None
     )

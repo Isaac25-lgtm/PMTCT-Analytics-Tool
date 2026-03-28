@@ -107,7 +107,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("CSRF_ENABLED"),
     )
     csrf_exempt_paths: list[str] = Field(
-        default_factory=lambda: ["/auth/login", "/health", "/health/ready", "/health/live"],
+        default_factory=lambda: ["/auth/login", "/auth/refresh", "/health", "/health/ready", "/health/live"],
     )
 
     # Cache and performance

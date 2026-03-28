@@ -97,6 +97,11 @@
                 <a href="/trends" class="nav-pill {% if active_page == 'trends' %}nav-pill-active{% endif %}">
                     Trends
                 </a>
+                {% if is_admin %}
+                <a href="/admin" class="nav-pill {% if active_page == 'admin' %}nav-pill-active{% endif %}">
+                    Admin
+                </a>
+                {% endif %}
             </nav>
         </div>
     </header>
@@ -111,7 +116,7 @@
     <div id="global-spinner" class="htmx-indicator fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/45">
         <div class="flex items-center gap-3 rounded-2xl bg-white px-5 py-4 shadow-xl">
             <span class="inline-block h-6 w-6 animate-spin rounded-full border-4 border-moh-green border-t-transparent"></span>
-            <span class="text-sm font-medium text-slate-700">Loading analytics…</span>
+            <span class="text-sm font-medium text-slate-700">Loading analytics...</span>
         </div>
     </div>
 

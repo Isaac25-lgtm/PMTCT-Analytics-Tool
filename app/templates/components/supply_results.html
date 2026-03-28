@@ -134,6 +134,18 @@
         {% endfor %}
     </div>
 
+    {% if commodities_json is defined %}
+    <div class="card-panel">
+        <h3 class="text-lg font-semibold text-slate-900 mb-4">Stock status overview</h3>
+        <div class="chart-shell">
+            <canvas id="supply-status-chart"></canvas>
+        </div>
+    </div>
+    <script>
+    window.renderSupplyChart("supply-status", "supply-status-chart", {{ commodities_json|safe }});
+    </script>
+    {% endif %}
+
     {% if unmapped_commodities is defined and unmapped_commodities %}
     <div class="card-panel">
         <h3 class="text-lg font-semibold text-slate-700">Pending DHIS2 mapping</h3>
@@ -142,7 +154,7 @@
             {% for item in unmapped_commodities %}
             <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 py-3">
                 <p class="text-sm font-medium text-slate-700">{{ item.name }}</p>
-                <p class="text-xs text-slate-400">{{ item.unit }} — mapping pending</p>
+                <p class="text-xs text-slate-400">{{ item.unit }} - mapping pending</p>
             </div>
             {% endfor %}
         </div>

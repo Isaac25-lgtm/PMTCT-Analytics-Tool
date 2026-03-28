@@ -25,7 +25,7 @@ from app.api.routes.reports import (
 )
 from app.auth.permissions import Permission, check_permission, get_user_permissions
 from app.auth.roles import get_role_from_session
-from app.core.config import get_settings
+from app.core.config import get_settings, load_yaml_config
 from app.indicators.models import IndicatorCategory, Periodicity
 from app.indicators.registry import get_indicator_registry
 from app.services.trends import TrendService
@@ -33,6 +33,18 @@ from app.services.trends import TrendService
 router = APIRouter()
 templates = Jinja2Templates(directory="app/templates")
 trend_service = TrendService()
+
+# Range period list covers 36 months for From/To selectors
+_RANGE_PERIOD_COUNT = 36
+
+
+def _get_fertility_rate() -> float:
+    """Load fertility rate from populations.yaml, default 0.05."""
+    try:
+        config = load_yaml_config("populations.yaml")
+        return float(config.get("fertility_rate", 0.05))
+    except Exception:
+        return 0.05
 
 
 def build_page_context(request: Request, session: Any) -> dict[str, Any]:
@@ -58,8 +70,9 @@ def build_page_context(request: Request, session: Any) -> dict[str, Any]:
         "default_history_depth": DEFAULT_HISTORY_DEPTH,
         "periods": build_periods(
             periodicity=DEFAULT_PERIODICITY,
-            history_depth=DEFAULT_HISTORY_DEPTH,
+            history_depth="36m",
         ),
+        "fertility_rate": _get_fertility_rate(),
     }
 
 

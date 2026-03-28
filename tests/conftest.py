@@ -128,6 +128,35 @@ def valid_session(mock_credentials: DHIS2Credentials) -> UserSession:
 
 
 @pytest.fixture
+def admin_session(mock_credentials: DHIS2Credentials) -> UserSession:
+    """Create an admin-level session for privileged route tests."""
+    now = datetime.now(UTC)
+    credentials = DHIS2Credentials(
+        base_url=mock_credentials.base_url,
+        auth_method=mock_credentials.auth_method,
+        pat_token=mock_credentials.pat_token,
+        user_id="admin123",
+        user_name="Admin User",
+        authorities=["ALL", "F_SYSTEM_SETTING", "M_dhis-web-settings"],
+        org_units=mock_credentials.org_units,
+    )
+    session = UserSession(
+        session_id="admin_session_123",
+        created_at=now,
+        expires_at=now + timedelta(hours=1),
+        credentials=credentials,
+    )
+    session.user_data["role_info"] = resolve_user_role(
+        user_id=credentials.user_id or "admin123",
+        username=credentials.user_name or "Admin User",
+        authorities=credentials.authorities,
+        org_units=credentials.org_units,
+    )
+    session.user_data["csrf_token"] = "admin-csrf-token"
+    return session
+
+
+@pytest.fixture
 def expired_session(mock_credentials: DHIS2Credentials) -> UserSession:
     """Create an expired user session."""
     now = datetime.now(UTC)
@@ -540,6 +569,19 @@ def authenticated_client(
     fresh_session_manager.create_session(valid_session)
     with TestClient(app) as test_client:
         test_client.cookies.set("session_id", valid_session.session_id)
+        yield test_client
+
+
+@pytest.fixture
+def admin_authenticated_client(
+    app,
+    admin_session: UserSession,
+    fresh_session_manager: SessionManager,
+) -> Generator[TestClient, None, None]:
+    """Create a client with an admin in-memory session cookie."""
+    fresh_session_manager.create_session(admin_session)
+    with TestClient(app) as test_client:
+        test_client.cookies.set("session_id", admin_session.session_id)
         yield test_client
 
 

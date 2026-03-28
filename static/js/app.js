@@ -435,14 +435,182 @@
         }
     });
 
+    // -- Period range preset buttons --
+    function initialisePeriodPresets(root) {
+        root.querySelectorAll(".preset-btn").forEach((btn) => {
+            if (btn.dataset.presetBound === "true") return;
+            btn.dataset.presetBound = "true";
+            btn.addEventListener("click", () => {
+                const fromSel = document.getElementById(btn.dataset.from);
+                const toSel = document.getElementById(btn.dataset.to);
+                if (!fromSel || !toSel) return;
+
+                const toVal = toSel.value;
+                if (!toVal || toVal.length < 6) return;
+
+                const toYear = parseInt(toVal.substring(0, 4));
+                const toMonth = parseInt(toVal.substring(4, 6));
+                let fromYear = toYear;
+                let fromMonth = toMonth;
+
+                const preset = btn.dataset.preset;
+                if (preset === "quarter") {
+                    fromMonth = toMonth - 2;
+                } else if (preset === "6months") {
+                    fromMonth = toMonth - 5;
+                } else if (preset === "fy") {
+                    // Uganda FY: July to June
+                    if (toMonth >= 7) {
+                        fromYear = toYear;
+                        fromMonth = 7;
+                    } else {
+                        fromYear = toYear - 1;
+                        fromMonth = 7;
+                    }
+                }
+
+                while (fromMonth <= 0) {
+                    fromMonth += 12;
+                    fromYear -= 1;
+                }
+
+                const fromId = String(fromYear) + String(fromMonth).padStart(2, "0");
+                const fromOpt = fromSel.querySelector('option[value="' + fromId + '"]');
+                if (fromOpt) {
+                    fromSel.value = fromId;
+                }
+            });
+        });
+    }
+
+    // -- Scorecard target gap chart --
+    window.renderScorecardGapChart = function renderScorecardGapChart(chartKey, canvasId, indicators) {
+        destroyChart(chartKey);
+        const canvas = document.getElementById(canvasId);
+        if (!canvas || !window.Chart) return;
+
+        const filtered = indicators.filter(function (ind) {
+            return ind.target != null && ind.value != null;
+        });
+        if (!filtered.length) return;
+
+        const labels = filtered.map(function (ind) { return ind.id; });
+        const values = filtered.map(function (ind) { return ind.value; });
+        const targets = filtered.map(function (ind) { return ind.target; });
+        const gaps = filtered.map(function (ind) { return Math.max(0, ind.target - ind.value); });
+        const colors = filtered.map(function (ind) {
+            if (ind.status === "success") return "#059669";
+            if (ind.status === "warning") return "#d97706";
+            return "#dc2626";
+        });
+
+        window.appCharts[chartKey] = new window.Chart(canvas.getContext("2d"), {
+            type: "bar",
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: "Achieved",
+                        data: values,
+                        backgroundColor: colors.map(function (c) { return c + "33"; }),
+                        borderColor: colors,
+                        borderWidth: 1,
+                    },
+                    {
+                        label: "Gap to target",
+                        data: gaps,
+                        backgroundColor: "rgba(220, 38, 38, 0.15)",
+                        borderColor: "rgba(220, 38, 38, 0.4)",
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                indexAxis: "y",
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: true,
+                        max: 100,
+                        title: { display: true, text: "Percentage (%)" },
+                    },
+                    y: { stacked: true },
+                },
+                plugins: {
+                    legend: { display: true, position: "top" },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                return ctx.dataset.label + ": " + ctx.parsed.x.toFixed(1) + "%";
+                            },
+                        },
+                    },
+                },
+            },
+        });
+    };
+
+    // -- Supply stockout chart --
+    window.renderSupplyChart = function renderSupplyChart(chartKey, canvasId, commodities) {
+        destroyChart(chartKey);
+        const canvas = document.getElementById(canvasId);
+        if (!canvas || !window.Chart || !commodities || !commodities.length) return;
+
+        const labels = commodities.map(function (c) { return c.commodity; });
+        const dou = commodities.map(function (c) { return c.days_of_use || 0; });
+        const stockout = commodities.map(function (c) { return c.stockout_days || 0; });
+        const douColors = dou.map(function (d) {
+            if (d <= 0) return "#dc2626";
+            if (d < 14) return "#dc2626";
+            if (d < 30) return "#d97706";
+            return "#059669";
+        });
+
+        window.appCharts[chartKey] = new window.Chart(canvas.getContext("2d"), {
+            type: "bar",
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: "Days of use",
+                        data: dou,
+                        backgroundColor: douColors.map(function (c) { return c + "44"; }),
+                        borderColor: douColors,
+                        borderWidth: 1,
+                    },
+                    {
+                        label: "Stockout days",
+                        data: stockout,
+                        backgroundColor: "rgba(220, 38, 38, 0.2)",
+                        borderColor: "#dc2626",
+                        borderWidth: 1,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: true, position: "top" },
+                },
+                scales: {
+                    y: { title: { display: true, text: "Days" } },
+                },
+            },
+        });
+    };
+
     document.addEventListener("DOMContentLoaded", () => {
         initialisePeriodControls(document);
+        initialisePeriodPresets(document);
         initialiseLogoutForm();
         startSessionRefresh();
     });
 
     document.body.addEventListener("htmx:afterSwap", (event) => {
         initialisePeriodControls(event.target);
+        initialisePeriodPresets(event.target);
         initialiseLogoutForm();
     });
 })();

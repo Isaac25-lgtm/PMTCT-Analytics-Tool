@@ -34,6 +34,9 @@ class AuditEventType(str, Enum):
     AI_INSIGHT_REQUEST = "ai_insight_request"
     AI_INSIGHT_ERROR = "ai_insight_error"
     RATE_LIMIT_EXCEEDED = "rate_limit_exceeded"
+    CACHE_CLEARED = "cache_cleared"
+    SESSION_TERMINATED = "session_terminated"
+    CONFIG_VALIDATED = "config_validated"
 
 
 class AuditSeverity(str, Enum):
@@ -338,6 +341,80 @@ class AuditLogger:
                     "current_count": current_count,
                     "limit": limit,
                     "window_seconds": window_seconds,
+                },
+            )
+        )
+
+    def log_cache_cleared(
+        self,
+        user_id: str,
+        username: str,
+        *,
+        scope: str,
+        cleared_count: int,
+        namespace: Optional[str] = None,
+    ) -> None:
+        self._emit(
+            self._event(
+                AuditEventType.CACHE_CLEARED,
+                AuditSeverity.INFO,
+                user_id=user_id,
+                username=username,
+                resource_type="cache",
+                resource_id=scope,
+                details={
+                    "namespace": namespace,
+                    "cleared_count": cleared_count,
+                },
+            )
+        )
+
+    def log_session_terminated(
+        self,
+        user_id: str,
+        username: str,
+        *,
+        terminated_session_id: str,
+        terminated_username: Optional[str] = None,
+    ) -> None:
+        self._emit(
+            self._event(
+                AuditEventType.SESSION_TERMINATED,
+                AuditSeverity.WARNING,
+                user_id=user_id,
+                username=username,
+                resource_type="session",
+                resource_id=terminated_session_id[:8],
+                details={
+                    "terminated_session_id": f"{terminated_session_id[:8]}...",
+                    "terminated_username": terminated_username,
+                },
+            )
+        )
+
+    def log_config_validated(
+        self,
+        user_id: str,
+        username: str,
+        *,
+        valid: bool,
+        files_checked: int,
+        error_count: int,
+        warning_count: int,
+    ) -> None:
+        self._emit(
+            self._event(
+                AuditEventType.CONFIG_VALIDATED,
+                AuditSeverity.INFO if valid else AuditSeverity.WARNING,
+                user_id=user_id,
+                username=username,
+                resource_type="config",
+                resource_id="all",
+                success=valid,
+                details={
+                    "files_checked": files_checked,
+                    "error_count": error_count,
+                    "warning_count": warning_count,
                 },
             )
         )

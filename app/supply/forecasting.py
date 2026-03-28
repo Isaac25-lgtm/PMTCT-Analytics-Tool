@@ -47,13 +47,14 @@ def compute_metrics(snapshot: StockSnapshot) -> StockMetrics:
     else:
         dou = 0.0
 
-    # Months of stock
-    mos: Optional[float] = None
-    if dou is not None:
-        mos = round(dou / 30, 1)
+    # Prefer calculator-derived DOU when it is already available from SUP-05/SUP-06.
+    # Fall back to the locally recomputed value when the indicator result is absent.
+    effective_dou = snapshot.days_of_use if snapshot.days_of_use is not None else dou
 
-    # Use DOU from snapshot if calculator already provided it and ours is None
-    effective_dou = dou if dou is not None else snapshot.days_of_use
+    # Months of stock should align with the effective DOU that the UI will show.
+    mos: Optional[float] = None
+    if effective_dou is not None:
+        mos = round(effective_dou / 30, 1)
 
     status = _classify_status(effective_dou)
 

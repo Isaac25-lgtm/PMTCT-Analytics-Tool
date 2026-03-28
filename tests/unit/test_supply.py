@@ -5,9 +5,13 @@ Unit tests for Prompt 16 supply chain module.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from app.core.cache import InMemoryCache, SessionCache
+from app.core.cache_keys import make_key
+from app.indicators.models import IndicatorResultSet
 from app.supply.commodities import (
     get_mapped_commodities,
     get_thresholds,
@@ -19,7 +23,6 @@ from app.supply.forecasting import compute_forecast, compute_metrics
 from app.supply.models import (
     AlertSeverity,
     Commodity,
-    CommodityMapping,
     EnrichedCommodity,
     ForecastResult,
     MappingStatus,
@@ -31,6 +34,7 @@ from app.supply.models import (
 )
 from app.supply.validation import validate_all, validate_snapshot
 from app.supply.alerts import generate_commodity_alerts
+from app.supply.service import SupplyService
 
 
 @pytest.fixture(autouse=True)
@@ -117,6 +121,19 @@ class TestForecasting:
         metrics = compute_metrics(snapshot)
         assert metrics.days_of_use is None
         assert metrics.status == StockStatus.UNKNOWN
+
+    def test_existing_indicator_days_of_use_takes_precedence(self):
+        snapshot = StockSnapshot(
+            consumed=12,
+            stockout_days=0,
+            stock_on_hand=300,
+            days_of_use=45,
+            period_days=30,
+        )
+        metrics = compute_metrics(snapshot)
+        assert metrics.days_of_use == 45.0
+        assert metrics.months_of_stock == 1.5
+        assert metrics.status == StockStatus.OK
 
     def test_stockout_status(self):
         snapshot = StockSnapshot(
@@ -353,3 +370,91 @@ class TestServiceCacheSync:
         cache = SessionCache("test", InMemoryCache())
         cache.set("key", "value", ttl=60)
         assert cache.get("key") == "value"
+
+
+def _mock_build_cached_connector_with_values(values: dict[str, float | None]):
+    """Return a mock connector factory for SupplyService tests."""
+
+    def _factory(*args, **kwargs):
+        mock_connector = AsyncMock()
+        mock_connector.get_data_values = AsyncMock(return_value=values)
+        mock_connector.__aenter__ = AsyncMock(return_value=mock_connector)
+        mock_connector.__aexit__ = AsyncMock(return_value=False)
+        return mock_connector
+
+    return _factory
+
+
+@pytest.mark.asyncio
+async def test_supply_service_use_cache_false_does_not_write(
+    valid_session,
+    supply_result_set,
+):
+    """use_cache=False should bypass both cache read and cache write."""
+    cache = SessionCache(valid_session.session_id, InMemoryCache())
+    calculator = MagicMock()
+    calculator.calculate_all = AsyncMock(return_value=supply_result_set)
+
+    service = SupplyService(
+        session=valid_session,
+        calculator=calculator,
+        session_cache=cache,
+    )
+    cache_key = make_key(
+        "supply",
+        "report",
+        {"org_unit": "ou123", "period": "202401"},
+    )
+
+    with patch(
+        "app.supply.service.build_cached_connector",
+        _mock_build_cached_connector_with_values({}),
+    ):
+        await service.get_supply_report("ou123", "202401", use_cache=False)
+
+    assert cache.get(cache_key) is None
+
+
+@pytest.mark.asyncio
+async def test_supply_service_uses_raw_value_fallback_when_indicator_missing(
+    valid_session,
+):
+    """Raw DHIS2 values should populate the snapshot when indicator results are absent."""
+    empty_result_set = IndicatorResultSet(
+        org_unit_uid="ou123",
+        org_unit_name="Test District",
+        period="202401",
+    )
+    calculator = MagicMock()
+    calculator.calculate_all = AsyncMock(return_value=empty_result_set)
+
+    service = SupplyService(session=valid_session, calculator=calculator)
+    raw_values = {
+        "lQRFuUgxIko": 14.0,
+        "RMbAB4oIe3v": 3.0,
+        "AhfrSeifgVM": 42.0,
+        "ObEurrF8fkT": 1.0,
+        "Y2rG87X018G": 9.0,
+        "uPxx6wu73ZL": 2.0,
+        "FjDiDncMSYs": 24.0,
+        "WjRrKZXi5UA": 0.0,
+    }
+
+    with patch(
+        "app.supply.service.build_cached_connector",
+        _mock_build_cached_connector_with_values(raw_values),
+    ):
+        report = await service.get_supply_report("ou123", "202401", use_cache=False)
+
+    by_id = {row.commodity.id: row for row in report.commodities}
+    hbsag = by_id["hbsag_kits"]
+    duo = by_id["duo_kits"]
+
+    assert hbsag.snapshot.consumed == 14.0
+    assert hbsag.snapshot.stockout_days == 3.0
+    assert hbsag.snapshot.stock_on_hand == 42.0
+    assert hbsag.snapshot.expired == 1.0
+
+    assert duo.snapshot.consumed == 9.0
+    assert duo.snapshot.stockout_days == 2.0
+    assert duo.snapshot.stock_on_hand == 24.0

@@ -1,0 +1,44 @@
+{# Period range selector: From/To months with presets.
+   Context variables:
+     - periods: list of {id, name} period options (most recent first)
+     - prefix: unique prefix for element IDs (e.g. "dashboard", "indicators")
+     - show_weekly: bool (default false) - show weekly toggle (supply only)
+     - periodicity_options: list (only needed when show_weekly is true)
+#}
+{% set pfx = prefix|default("range") %}
+
+<div data-period-range class="grid gap-5 sm:grid-cols-[1fr_1fr_auto]">
+    {% if show_weekly is defined and show_weekly %}
+    <div class="sm:col-span-3">
+        <label for="{{ pfx }}-periodicity" class="form-label">Frequency</label>
+        <select id="{{ pfx }}-periodicity" name="periodicity" data-periodicity-select class="form-select">
+            {% for option in periodicity_options %}
+            <option value="{{ option.id }}" {% if option.id == "monthly" %}selected{% endif %}>{{ option.label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    {% endif %}
+    <div>
+        <label for="{{ pfx }}-from" class="form-label">From</label>
+        <select id="{{ pfx }}-from" name="period_start" class="form-select" required>
+            {% for p in periods|reverse %}
+            <option value="{{ p.id }}" {% if loop.index == (periods|length - 11) %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div>
+        <label for="{{ pfx }}-to" class="form-label">To</label>
+        <select id="{{ pfx }}-to" name="period_end" class="form-select" required>
+            {% for p in periods %}
+            <option value="{{ p.id }}" {% if loop.first %}selected{% endif %}>{{ p.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="flex items-end">
+        <div class="flex flex-wrap gap-2">
+            <button type="button" class="preset-btn" data-preset="quarter" data-from="{{ pfx }}-from" data-to="{{ pfx }}-to">Quarter</button>
+            <button type="button" class="preset-btn" data-preset="6months" data-from="{{ pfx }}-from" data-to="{{ pfx }}-to">6 months</button>
+            <button type="button" class="preset-btn" data-preset="fy" data-from="{{ pfx }}-from" data-to="{{ pfx }}-to">FY</button>
+        </div>
+    </div>
+</div>

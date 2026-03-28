@@ -7,14 +7,10 @@ the global AlertEngine.  These helpers enrich the supply page/report.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from app.supply.commodities import get_thresholds
 from app.supply.models import (
     AlertSeverity,
     EnrichedCommodity,
-    StockMetrics,
-    StockSnapshot,
     SupplyAlert,
 )
 

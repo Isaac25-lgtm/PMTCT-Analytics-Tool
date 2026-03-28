@@ -73,8 +73,9 @@ class SupplyService:
 
         report = await self._build_report(org_unit, period, org_unit_name)
 
-        ttl = get_cache_ttl("aggregate")
-        self._cache.set(cache_key, report, ttl=ttl)
+        if use_cache:
+            ttl = get_cache_ttl("aggregate")
+            self._cache.set(cache_key, report, ttl=ttl)
         return report
 
     async def _build_report(

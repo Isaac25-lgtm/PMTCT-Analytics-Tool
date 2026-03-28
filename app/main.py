@@ -26,7 +26,20 @@ from app.api.middleware import (
     SecurityHeadersMiddleware,
     SessionMiddleware,
 )
-from app.api.routes import alerts, auth, data_quality, exports, health, indicators, insights, org_units, pages, reports, trends
+from app.api.routes import (
+    admin,
+    alerts,
+    auth,
+    data_quality,
+    exports,
+    health,
+    indicators,
+    insights,
+    org_units,
+    pages,
+    reports,
+    trends,
+)
 from app.core.cache import clear_all_caches
 from app.core.config import get_settings
 from app.core.connection_pool import close_async_client
@@ -125,6 +138,7 @@ def create_app() -> FastAPI:
     app.include_router(insights.router, prefix="/api/insights", tags=["AI Insights"])
     app.include_router(org_units.router, prefix="/api", tags=["Org Units"])
     app.include_router(trends.router, prefix="/api/trends", tags=["Trends"])
+    app.include_router(admin.router, tags=["Admin"])
     app.include_router(pages.router, tags=["Pages"])
 
     @app.exception_handler(Exception)

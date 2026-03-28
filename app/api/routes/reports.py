@@ -43,9 +43,13 @@ class ScoreCardRequest(BaseModel):
     """Request body for WHO validation scorecard generation."""
 
     org_unit: str = Field(..., description="Organisation unit UID")
-    period: str = Field(..., description="DHIS2 period")
+    period: Optional[str] = Field(None, description="DHIS2 period (legacy single-period)")
+    period_start: Optional[str] = Field(None, description="Range start period (YYYYMM)")
+    period_end: Optional[str] = Field(None, description="Range end period (YYYYMM)")
     org_unit_name: Optional[str] = None
     expected_pregnancies: Optional[int] = None
+    annual_population: Optional[int] = None
+    compare_children: Optional[bool] = None
 
 
 class ScoreCardIndicator(BaseModel):
@@ -58,6 +62,10 @@ class ScoreCardIndicator(BaseModel):
     target: Optional[float]
     meets_target: Optional[bool]
     status: str
+    description: Optional[str] = None
+    numerator_label: Optional[str] = None
+    denominator_label: Optional[str] = None
+    notes: Optional[str] = None
 
 
 class ScoreCardResponse(BaseModel):
@@ -130,6 +138,7 @@ class SupplyStatusResponse(BaseModel):
     commodities: list[CommodityStatus]
     # Enriched optional fields (Prompt 16)
     summary: Optional[dict] = None
+    enriched_commodities: Optional[list[dict]] = None
     unmapped_commodities: Optional[list[dict]] = None
     alerts: Optional[list[dict]] = None
     validation: Optional[list[dict]] = None
@@ -340,6 +349,40 @@ def render_period_options(periods: list[dict[str, str]]) -> str:
     )
 
 
+def _resolve_period(req: ScoreCardRequest) -> str:
+    """Return the effective single period from legacy or range fields."""
+    if req.period:
+        return req.period
+    if req.period_end:
+        return req.period_end
+    raise HTTPException(status_code=400, detail="Either period or period_end is required")
+
+
+def _derive_expected_pregnancies(
+    annual_population: int | None,
+    period_start: str | None,
+    period_end: str | None,
+    fertility_rate: float = 0.05,
+) -> int | None:
+    """Derive expected pregnancies from annual population and range fraction."""
+    if annual_population is None:
+        return None
+
+    if period_start and period_end and len(period_start) == 6 and len(period_end) == 6:
+        try:
+            sy, sm = int(period_start[:4]), int(period_start[4:6])
+            ey, em = int(period_end[:4]), int(period_end[4:6])
+            months = (ey - sy) * 12 + (em - sm) + 1
+            months = max(1, min(months, 12))
+        except (ValueError, IndexError):
+            months = 1
+        fraction = months / 12.0
+    else:
+        fraction = 1.0 / 12.0  # single month
+
+    return max(1, round(annual_population * fertility_rate * fraction))
+
+
 @router.post("/scorecard", response_model=ScoreCardResponse)
 async def generate_scorecard(
     request: Request,
@@ -356,24 +399,39 @@ async def generate_scorecard(
         scorecard_request.org_unit_name,
     )
 
-    if scorecard_request.expected_pregnancies is not None:
+    period = _resolve_period(scorecard_request)
+
+    # Derive expected pregnancies from annual population if provided
+    expected_pregnancies = scorecard_request.expected_pregnancies
+    if scorecard_request.annual_population is not None:
+        expected_pregnancies = _derive_expected_pregnancies(
+            scorecard_request.annual_population,
+            scorecard_request.period_start,
+            scorecard_request.period_end,
+        )
+
+    if expected_pregnancies is not None:
         calculator.set_expected_pregnancies(
             scorecard_request.org_unit,
-            scorecard_request.expected_pregnancies,
+            expected_pregnancies,
         )
 
     result_set = await calculator.calculate_all(
         org_unit=scorecard_request.org_unit,
-        period=scorecard_request.period,
+        period=period,
         org_unit_name=org_unit_name,
         categories=[IndicatorCategory.WHO_VALIDATION],
     )
+
+    # Load indicator metadata for explanations
+    registry = get_indicator_registry()
 
     indicators: list[ScoreCardIndicator] = []
     meeting_target = 0
     total_with_target = 0
 
     for result in result_set.results:
+        defn = registry.get(result.indicator_id)
         indicators.append(
             ScoreCardIndicator(
                 id=result.indicator_id,
@@ -383,6 +441,10 @@ async def generate_scorecard(
                 target=result.target,
                 meets_target=result.meets_target,
                 status=get_status_color(result),
+                description=defn.description if defn else None,
+                numerator_label=defn.numerator.label if defn and defn.numerator else None,
+                denominator_label=defn.denominator.label if defn and defn.denominator else None,
+                notes=defn.notes if defn else None,
             )
         )
         if result.target is not None:
@@ -399,17 +461,19 @@ async def generate_scorecard(
     generated_at = datetime.now(timezone.utc)
 
     if is_htmx_request(request):
+        indicators_json = json.dumps([ind.model_dump() for ind in indicators])
         return templates.TemplateResponse(
             request,
             "components/scorecard_results.html",
             {
                 "request": request,
                 "indicators": [indicator.model_dump() for indicator in indicators],
+                "indicators_json": indicators_json,
                 "summary": summary,
                 "org_unit": scorecard_request.org_unit,
                 "org_unit_name": org_unit_name,
-                "period": scorecard_request.period,
-                "expected_pregnancies": scorecard_request.expected_pregnancies,
+                "period": period,
+                "expected_pregnancies": expected_pregnancies,
                 "generated_at": generated_at.strftime("%Y-%m-%d %H:%M UTC"),
             },
         )
@@ -417,7 +481,7 @@ async def generate_scorecard(
     return ScoreCardResponse(
         org_unit=scorecard_request.org_unit,
         org_unit_name=org_unit_name,
-        period=scorecard_request.period,
+        period=period,
         generated_at=generated_at,
         indicators=indicators,
         summary=summary,
@@ -571,14 +635,29 @@ async def generate_supply_status(
     all_forecasts: list[dict] = []
     for ec in report.commodities:
         commodity_alerts = [
-            {"severity": a.severity.value, "alert_type": a.alert_type, "message": a.message}
+            {
+                "commodity_id": ec.commodity.id,
+                "commodity": ec.commodity.name,
+                "severity": a.severity.value,
+                "alert_type": a.alert_type,
+                "message": a.message,
+                "current_value": a.current_value,
+                "threshold_value": a.threshold_value,
+            }
             for a in ec.alerts
         ]
         commodity_validation = [
-            {"severity": f.severity.value, "field": f.field_name, "message": f.message}
+            {
+                "commodity_id": ec.commodity.id,
+                "commodity": ec.commodity.name,
+                "severity": f.severity.value,
+                "field": f.field_name,
+                "message": f.message,
+            }
             for f in ec.validation
         ]
         forecast_dict = {
+            "commodity_id": ec.commodity.id,
             "commodity": ec.commodity.name,
             "horizons": ec.forecast.horizons,
             "reorder_needed": ec.forecast.reorder_needed,
@@ -603,9 +682,21 @@ async def generate_supply_status(
         all_validation.extend(commodity_validation)
         all_forecasts.append(forecast_dict)
 
-    unmapped_list = [{"name": c.name, "unit": c.unit} for c in report.unmapped_commodities]
+    unmapped_list = [
+        {
+            "id": c.id,
+            "name": c.name,
+            "unit": c.unit,
+            "mapping_status": c.mapping_status.value,
+        }
+        for c in report.unmapped_commodities
+    ]
 
     if is_htmx_request(request):
+        chart_commodities = json.dumps([
+            {"commodity": r["commodity"], "days_of_use": r["days_of_use"], "stockout_days": r["stockout_days"]}
+            for r in enriched_rows
+        ])
         return templates.TemplateResponse(
             request,
             "components/supply_results.html",
@@ -615,6 +706,7 @@ async def generate_supply_status(
                 "org_unit_name": org_unit_name,
                 "period": supply_request.period,
                 "commodities": enriched_rows,
+                "commodities_json": chart_commodities,
                 "unmapped_commodities": unmapped_list,
                 "summary": report.summary,
                 "generated_at": generated_at_str,
@@ -628,6 +720,7 @@ async def generate_supply_status(
         generated_at=generated_at,
         commodities=commodities,
         summary=report.summary,
+        enriched_commodities=enriched_rows,
         unmapped_commodities=unmapped_list,
         alerts=all_alerts,
         validation=all_validation,

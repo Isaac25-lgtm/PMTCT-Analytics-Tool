@@ -2,7 +2,7 @@
 
 Stateless, DHIS2-connected analytics dashboard for Uganda Ministry of Health PMTCT Triple Elimination monitoring across HIV, syphilis, and hepatitis B.
 
-This repository now includes the core MVP application through Prompt 15 of the build sequence, including:
+This repository now includes the specification-complete MVP through the final production-readiness prompt, including:
 
 - DHIS2 authentication and session handling
 - indicator calculation and report routes
@@ -11,7 +11,10 @@ This repository now includes the core MVP application through Prompt 15 of the b
 - org-unit hierarchy navigation
 - RBAC, CSRF, rate limiting, and audit logging
 - in-memory caching and pooled DHIS2 connections
+- enriched supply-chain reporting
 - container, Render, CI, and deployment assets
+- end-user, API, developer, indicator, and configuration documentation
+- admin diagnostics and config-validation utilities
 
 ## Architecture
 
@@ -51,6 +54,15 @@ All DHIS2 metadata mappings and indicator definitions are kept in `config/`:
 - See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for Docker, Render, health checks, and operational guidance.
 - Render injects a `PORT` environment variable automatically. The startup script honors it and keeps the app on a single worker for MVP consistency.
 - Keep secrets such as `SECRET_KEY` and `LLM_API_KEY` in environment variables, not in the repository.
+
+## Documentation
+
+- [docs/USER_GUIDE.md](docs/USER_GUIDE.md)
+- [docs/API_REFERENCE.md](docs/API_REFERENCE.md)
+- [docs/DEVELOPER_GUIDE.md](docs/DEVELOPER_GUIDE.md)
+- [docs/INDICATOR_CATALOG.md](docs/INDICATOR_CATALOG.md)
+- [docs/CONFIGURATION.md](docs/CONFIGURATION.md)
+- [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)
 
 ## Render Deployment Notes
 

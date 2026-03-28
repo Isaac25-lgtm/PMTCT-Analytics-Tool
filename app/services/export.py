@@ -244,6 +244,23 @@ class ExcelExporter:
             max_len = max(len(str(cell.value)) if cell.value is not None else 0 for cell in column_cells)
             sheet.column_dimensions[column_cells[0].column_letter].width = min(max_len + 2, 40)
 
+    def _apply_status_fills(self, sheet: Any, status_col: int, oxl: dict[str, Any]) -> None:
+        """Apply traffic-light background fills to rows based on the status column."""
+        fills = {
+            "success": oxl["PatternFill"](fill_type="solid", start_color="D1FAE5", end_color="D1FAE5"),
+            "warning": oxl["PatternFill"](fill_type="solid", start_color="FEF3C7", end_color="FEF3C7"),
+            "danger": oxl["PatternFill"](fill_type="solid", start_color="FEE2E2", end_color="FEE2E2"),
+        }
+        for row in sheet.iter_rows(min_row=2):
+            status_cell = row[status_col - 1] if len(row) >= status_col else None
+            if not status_cell or not status_cell.value:
+                continue
+            status_val = str(status_cell.value).lower()
+            fill = fills.get(status_val)
+            if fill:
+                for cell in row:
+                    cell.fill = fill
+
     def generate_scorecard_excel(self, indicators: list[dict[str, Any]], summary: dict[str, Any], org_unit: str, org_unit_name: Optional[str], period: str) -> bytes:
         oxl = self._load()
         workbook = oxl["Workbook"]()
@@ -279,6 +296,10 @@ class ExcelExporter:
             ],
             oxl,
         )
+        # Apply traffic-light fills to the Indicators sheet (status is col 7)
+        indicators_sheet = workbook["Indicators"]
+        self._apply_status_fills(indicators_sheet, 7, oxl)
+
         buffer = io.BytesIO()
         workbook.save(buffer)
         return buffer.getvalue()

@@ -12,7 +12,8 @@
                 <p class="text-sm font-semibold uppercase tracking-[0.25em] text-moh-green">Validation overview</p>
                 <h1 class="mt-3 text-3xl font-semibold text-slate-900">WHO scorecard review</h1>
                 <p class="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-                    Generate the validation scorecard for any district or facility org unit, switch between monthly and weekly reporting periods, and extend the selectable history window when you need to review trends further back.
+                    Generate the validation scorecard for any accessible district or facility.
+                    Select a date range and enter the annual population to automatically derive expected pregnancies.
                 </p>
             </div>
             <div class="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-5">
@@ -25,50 +26,30 @@
     </section>
 
     <section class="card-panel">
-        <form hx-post="/api/reports/scorecard" hx-target="#scorecard-results" hx-indicator="#global-spinner" class="grid gap-5 xl:grid-cols-6">
-            <div class="xl:col-span-2">
-                <label for="dashboard-org-unit" class="form-label">Organisation unit</label>
-                <select id="dashboard-org-unit" name="org_unit" class="form-select" required>
-                    {% for org_unit in org_units %}
-                    <option value="{{ org_unit.id }}">{{ org_unit.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <div data-period-controls class="grid gap-5 sm:grid-cols-3 xl:col-span-3">
+        <form hx-post="/api/reports/scorecard" hx-target="#scorecard-results" hx-indicator="#global-spinner" class="space-y-5">
+            <div class="grid gap-5 xl:grid-cols-2">
                 <div>
-                    <label for="dashboard-periodicity" class="form-label">Frequency</label>
-                    <select id="dashboard-periodicity" name="periodicity" data-periodicity-select class="form-select">
-                        {% for option in periodicity_options %}
-                        <option value="{{ option.id }}" {% if option.id == default_periodicity %}selected{% endif %}>{{ option.label }}</option>
-                        {% endfor %}
-                    </select>
+                    <label class="form-label">Organisation unit</label>
+                    {% include "components/org_unit_selector.html" %}
                 </div>
                 <div>
-                    <label for="dashboard-history-depth" class="form-label">History depth</label>
-                    <select id="dashboard-history-depth" name="history_depth" data-history-depth-select class="form-select">
-                        {% for option in history_depth_options %}
-                        <option value="{{ option.id }}" {% if option.id == default_history_depth %}selected{% endif %}>{{ option.label }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label for="dashboard-period" class="form-label">Period</label>
-                    <select id="dashboard-period" name="period" data-period-select class="form-select" required>
-                        {% for period in periods %}
-                        <option value="{{ period.id }}">{{ period.name }}</option>
-                        {% endfor %}
-                    </select>
+                    <label for="dashboard-population" class="form-label">Annual population</label>
+                    <input id="dashboard-population" name="annual_population" type="number" min="0" class="form-input" placeholder="Enter catchment population">
+                    <p class="mt-1 text-xs text-slate-400">Expected pregnancies = population x {{ fertility_rate|default(0.05) }} x months/12</p>
                 </div>
             </div>
 
             <div>
-                <label for="dashboard-expected-pregnancies" class="form-label">Expected pregnancies</label>
-                <input id="dashboard-expected-pregnancies" name="expected_pregnancies" type="number" min="0" class="form-input" placeholder="Optional">
+                {% set prefix = "dashboard" %}
+                {% include "components/period_range_selector.html" %}
             </div>
 
-            <div class="xl:col-span-6">
+            <div class="flex flex-wrap items-center gap-4">
                 <button type="submit" class="primary-button">Generate scorecard</button>
+                <label class="flex items-center gap-2 text-sm text-slate-600">
+                    <input type="checkbox" name="compare_children" value="true" class="h-4 w-4 rounded border-slate-300 text-moh-green focus:ring-moh-green">
+                    Compare child org units
+                </label>
             </div>
         </form>
     </section>

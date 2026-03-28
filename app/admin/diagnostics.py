@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from app.core.cache import get_app_cache, get_session_store
-from app.core.config import get_settings
+from app.core.config import get_settings, normalize_dhis2_base_url
 from app.core.connection_pool import get_async_client
 from app.core.session import get_session_manager
 
@@ -45,7 +45,7 @@ class SystemDiagnostics:
             "cache": self._get_cache_info(),
             "sessions": self._get_session_info(),
             "configuration": {
-                "dhis2_base_url": settings.dhis2_base_url,
+                "dhis2_base_url": normalize_dhis2_base_url(settings.dhis2_base_url),
                 "dhis2_configured": bool(settings.dhis2_base_url),
                 "llm_provider": settings.llm_provider,
                 "llm_model": settings.llm_model,
@@ -64,7 +64,7 @@ class SystemDiagnostics:
             return {"status": "not_configured"}
 
         client = get_async_client()
-        base_url = settings.dhis2_base_url.rstrip("/")
+        base_url = normalize_dhis2_base_url(settings.dhis2_base_url) or ""
         try:
             response = await client.get(
                 f"{base_url}/api/system/info",

@@ -8,8 +8,27 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import yaml
-from pydantic import AliasChoices, Field
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def normalize_dhis2_base_url(value: str | None) -> str | None:
+    """Normalize a DHIS2 instance URL to the base instance path.
+
+    Accepts either the instance root or a URL ending in `/api` and always
+    returns the base URL without a trailing slash.
+    """
+    if value is None:
+        return None
+
+    normalized = str(value).strip()
+    if not normalized:
+        return normalized
+
+    normalized = normalized.rstrip("/")
+    if normalized.lower().endswith("/api"):
+        normalized = normalized[:-4]
+    return normalized.rstrip("/")
 
 
 class Settings(BaseSettings):
@@ -222,6 +241,11 @@ class Settings(BaseSettings):
     def app_title(self) -> str:
         """Backward-compatible title accessor for the current FastAPI bootstrap."""
         return self.app_name
+
+    @field_validator("dhis2_base_url", mode="before")
+    @classmethod
+    def _normalize_dhis2_base_url(cls, value: str | None) -> str | None:
+        return normalize_dhis2_base_url(value)
 
 
 @lru_cache

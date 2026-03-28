@@ -18,7 +18,7 @@ from app.auth.audit import get_audit_logger
 from app.auth.permissions import get_user_permissions
 from app.auth.rate_limit import RateLimitOperation, get_rate_limiter
 from app.auth.roles import get_role_from_session, resolve_user_role, store_role_in_session
-from app.core.config import get_settings
+from app.core.config import get_settings, normalize_dhis2_base_url
 from app.core.session import AuthMethod, UserSession, get_session_manager
 
 logger = logging.getLogger(__name__)
@@ -30,8 +30,8 @@ class LoginRequest(BaseModel):
 
     dhis2_url: HttpUrl = Field(
         ...,
-        description="DHIS2 instance URL (e.g., https://hmis.health.go.ug)",
-        examples=["https://hmis.health.go.ug"],
+        description="DHIS2 instance URL, with or without a trailing /api segment",
+        examples=["https://hmis.health.go.ug", "https://hmis.health.go.ug/api"],
     )
     auth_method: AuthMethod = Field(default=AuthMethod.BASIC)
     username: Optional[str] = Field(default=None)
@@ -99,7 +99,7 @@ async def login(
     session_manager = get_session_manager()
     auth_handler = DHIS2AuthHandler()
     audit = get_audit_logger()
-    base_url = str(login_data.dhis2_url).rstrip("/")
+    base_url = normalize_dhis2_base_url(str(login_data.dhis2_url)) or ""
     client_ip = _get_client_ip(request)
 
     if settings.rate_limit_enabled:

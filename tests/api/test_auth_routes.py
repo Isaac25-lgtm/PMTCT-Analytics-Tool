@@ -53,6 +53,24 @@ class TestLoginEndpoint:
         assert response.status_code == 200
         assert response.json()["user_name"] == "Basic User"
 
+    def test_login_normalizes_trailing_api_suffix(self, client, mock_credentials) -> None:
+        authenticate_pat = AsyncMock(return_value=mock_credentials)
+        with patch(
+            "app.api.routes.auth.DHIS2AuthHandler.authenticate_pat",
+            new=authenticate_pat,
+        ):
+            response = client.post(
+                "/auth/login",
+                json={
+                    "dhis2_url": "https://test.dhis2.org/api/",
+                    "auth_method": "pat",
+                    "pat_token": "test_pat_token_12345",
+                },
+            )
+
+        assert response.status_code == 200
+        assert authenticate_pat.await_args.kwargs["base_url"] == "https://test.dhis2.org"
+
     def test_login_sets_httponly_cookie(self, client, mock_credentials) -> None:
         with patch(
             "app.api.routes.auth.DHIS2AuthHandler.authenticate_pat",

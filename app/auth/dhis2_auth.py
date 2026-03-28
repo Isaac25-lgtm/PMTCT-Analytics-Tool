@@ -7,7 +7,7 @@ from typing import Optional
 
 import httpx
 
-from app.core.config import get_settings
+from app.core.config import get_settings, normalize_dhis2_base_url
 from app.core.session import AuthMethod, DHIS2Credentials
 
 
@@ -30,7 +30,7 @@ class DHIS2AuthHandler:
         password: str,
     ) -> DHIS2Credentials:
         credentials = DHIS2Credentials(
-            base_url=base_url.rstrip("/"),
+            base_url=normalize_dhis2_base_url(base_url) or "",
             auth_method=AuthMethod.BASIC,
             username=username,
             password=password,
@@ -44,7 +44,7 @@ class DHIS2AuthHandler:
         pat_token: str,
     ) -> DHIS2Credentials:
         credentials = DHIS2Credentials(
-            base_url=base_url.rstrip("/"),
+            base_url=normalize_dhis2_base_url(base_url) or "",
             auth_method=AuthMethod.PAT,
             pat_token=pat_token,
         )

@@ -96,6 +96,7 @@ class TestProtectedPages:
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/html")
         assert "Run DQ checks" in response.text
+        assert "Select an organisation unit" in response.text
 
     def test_alerts_page_renders(self, authenticated_client) -> None:
         response = authenticated_client.get("/alerts")
@@ -104,6 +105,7 @@ class TestProtectedPages:
         assert response.headers["content-type"].startswith("text/html")
         assert "Evaluate alerts" in response.text
         assert "monthly threshold monitoring" in response.text.lower()
+        assert "Select an organisation unit" in response.text
 
     def test_insights_page_renders(self, authenticated_client) -> None:
         response = authenticated_client.get("/insights")
@@ -112,6 +114,7 @@ class TestProtectedPages:
         assert response.headers["content-type"].startswith("text/html")
         assert "AI-assisted programme interpretation" in response.text
         assert "Current-session Q&amp;A" in response.text
+        assert "Select an organisation unit" in response.text
 
     def test_trends_page_renders(self, authenticated_client) -> None:
         response = authenticated_client.get("/trends")

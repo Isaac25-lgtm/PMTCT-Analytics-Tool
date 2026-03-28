@@ -28,12 +28,14 @@
         <form id="insight-filter-form" class="grid gap-5 xl:grid-cols-6">
             <input type="hidden" name="include_trend" value="true">
             <div class="xl:col-span-2">
-                <label for="insight-org-unit" class="form-label">Organisation unit</label>
-                <select id="insight-org-unit" name="org_unit" class="form-select" required>
-                    {% for org_unit in org_units %}
-                    <option value="{{ org_unit.id }}" {% if org_unit.id == selected_org_unit %}selected{% endif %}>{{ org_unit.name }}</option>
-                    {% endfor %}
-                </select>
+                {% set input_name = "org_unit" %}
+                {% set name_input_name = "org_unit_name" %}
+                {% set component_id = "insight-org-unit-selector" %}
+                {% set roots = selector_roots %}
+                {% set selected_node = selector_selected_node %}
+                {% set breadcrumbs = selector_breadcrumbs %}
+                {% set include_children_option = false %}
+                {% include "components/org_unit_selector.html" %}
             </div>
 
             <div>

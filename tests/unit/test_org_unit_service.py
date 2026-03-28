@@ -82,17 +82,15 @@ class TestOrgUnitHierarchyConfig:
 @pytest.mark.unit
 class TestOrgUnitService:
     @pytest.mark.asyncio
-    async def test_get_user_roots_marks_assigned_units(
+    async def test_get_user_roots_marks_assigned_units_from_session(
         self,
         valid_session,
         hierarchy_config: OrgUnitHierarchyConfig,
     ) -> None:
-        connector = _mock_cached_connector(AsyncMock())
-        connector.get_user_org_units.return_value = [
-            OrgUnit(uid="district1", name="Kampala District", level=3),
+        valid_session.credentials.org_units = [
+            {"id": "district1", "name": "Kampala District", "level": 3},
         ]
-
-        with patch("app.services.org_unit_service.build_cached_connector", return_value=connector):
+        with patch("app.services.org_unit_service.build_cached_connector") as build_connector:
             service = OrgUnitService(valid_session, config=hierarchy_config)
             roots = await service.get_user_roots()
 
@@ -100,6 +98,7 @@ class TestOrgUnitService:
         assert roots[0].uid == "district1"
         assert roots[0].is_user_root is True
         assert roots[0].level_name == "District"
+        build_connector.assert_not_called()
 
     @pytest.mark.asyncio
     async def test_search_across_all_user_roots(

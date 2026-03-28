@@ -15,7 +15,7 @@ services:
       APP_DEBUG: "true"
       LOG_LEVEL: DEBUG
       LOG_FORMAT: console
-      DHIS2_BASE_URL: ${DHIS2_BASE_URL:-https://play.dhis2.org/40.4.0}
+      DHIS2_BASE_URL: ${DHIS2_BASE_URL:-https://hmis.health.go.ug}
       SESSION_TIMEOUT_MINUTES: 120
       CACHE_ENABLED: "true"
       CACHE_MAX_SIZE: 5000

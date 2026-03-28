@@ -47,6 +47,10 @@ Core settings in `app/core/config.py`:
 - `LLM_FALLBACK_ENABLED`
 - `LLM_MAX_CONTENT_LENGTH`
 
+For Google Gemini, set `LLM_PROVIDER=gemini`. The app defaults to the
+OpenAI-compatible Gemini endpoint automatically, and `gemini-3-flash-preview`
+is a valid explicit `LLM_MODEL` when you want Gemini 3 Flash.
+
 ### Security and audit
 - `AUDIT_ENABLED`
 - `AUDIT_LOG_FILE`

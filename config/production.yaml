@@ -43,7 +43,7 @@ security:
   audit_enabled: true
 
 llm:
-  provider: anthropic
-  model: set-via-LLM_MODEL-env
+  provider: gemini
+  model: gemini-3-flash-preview
   max_tokens: 2048
   temperature: 0.3

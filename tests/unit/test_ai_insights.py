@@ -13,7 +13,7 @@ from app.indicators.models import IndicatorCategory, ResultType
 from app.services.ai_insights import AIInsightsEngine, Insight, InsightEnvelope, InsightStatus
 from app.services.ai_prompts import InsightType, get_cascade_definition
 from app.services.dq_rules import DQCategory, DQFinding, DQSeverity
-from app.services.llm_provider import OpenAIProvider, get_llm_provider
+from app.services.llm_provider import GeminiProvider, OpenAIProvider, get_llm_provider
 from tests.conftest import build_result
 
 
@@ -66,6 +66,17 @@ class TestLLMProviderFactory:
             provider = get_llm_provider()
 
         assert isinstance(provider, OpenAIProvider)
+
+    def test_get_provider_returns_gemini_provider(self) -> None:
+        with patch(
+            "app.services.llm_provider.get_settings",
+            return_value=sample_settings(llm_provider="gemini", llm_model="gemini-3-flash-preview"),
+        ):
+            provider = get_llm_provider()
+
+        assert isinstance(provider, GeminiProvider)
+        assert provider.model == "gemini-3-flash-preview"
+        assert provider.api_url == "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
 
 
 @pytest.mark.unit

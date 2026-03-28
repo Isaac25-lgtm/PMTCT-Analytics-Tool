@@ -219,6 +219,28 @@ class OrgUnitService:
         self._hierarchy_cache: dict[str, dict[str, OrgUnit]] = {}
         self._user_roots: Optional[list[OrgUnit]] = None
 
+    def _load_user_roots_from_session(self) -> list[OrgUnit]:
+        """Build assigned root org units directly from authenticated session data."""
+        credentials = self._session.credentials
+        if credentials is None:
+            return []
+
+        roots: list[OrgUnit] = []
+        for org_unit in credentials.org_units:
+            uid = org_unit.get("id")
+            name = org_unit.get("name")
+            if not uid or not name:
+                continue
+            roots.append(
+                OrgUnit(
+                    uid=uid,
+                    name=name,
+                    level=org_unit.get("level"),
+                    path=org_unit.get("path"),
+                )
+            )
+        return roots
+
     async def get_user_roots(self) -> list[OrgUnitNode]:
         """Return the user's assigned org units as navigation roots."""
         roots = await self._ensure_user_roots()
@@ -422,8 +444,10 @@ class OrgUnitService:
 
     async def _ensure_user_roots(self) -> list[OrgUnit]:
         if self._user_roots is None:
-            async with build_cached_connector(self._session) as connector:
-                self._user_roots = await connector.get_user_org_units()
+            self._user_roots = self._load_user_roots_from_session()
+            if not self._user_roots:
+                async with build_cached_connector(self._session) as connector:
+                    self._user_roots = await connector.get_user_org_units()
             for org_unit in self._user_roots:
                 self._org_unit_cache[org_unit.uid] = org_unit
         return self._user_roots or []

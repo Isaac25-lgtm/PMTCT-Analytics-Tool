@@ -38,10 +38,10 @@ Set these in Render:
 | `RATE_LIMIT_ENABLED` | Yes | Usually `true` |
 | `CSRF_ENABLED` | Yes | Usually `true` |
 | `AUDIT_ENABLED` | Yes | Usually `true` |
-| `LLM_PROVIDER` | No | Example: `anthropic`, `openai`, `azure-openai` |
+| `LLM_PROVIDER` | No | Example: `gemini`, `openai`, `azure-openai`, `anthropic` |
 | `LLM_API_KEY` | No | Needed only when AI insights are enabled |
-| `LLM_MODEL` | No | Provider-specific model/deployment name |
-| `LLM_BASE_URL` | No | For OpenAI-compatible endpoints |
+| `LLM_MODEL` | No | Provider-specific model name, for example `gemini-3-flash-preview` |
+| `LLM_BASE_URL` | No | Optional OpenAI-compatible endpoint override; Gemini defaults automatically |
 | `LLM_AZURE_ENDPOINT` | No | For Azure OpenAI |
 
 ## Health endpoints
@@ -115,6 +115,7 @@ Verify:
 - `LLM_PROVIDER`
 - `LLM_API_KEY`
 - optional `LLM_MODEL`
+- for Gemini 3 Flash, use `LLM_PROVIDER=gemini` and `LLM_MODEL=gemini-3-flash-preview`
 
 ## Security reminders
 

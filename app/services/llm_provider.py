@@ -187,6 +187,28 @@ class OpenAIProvider(HTTPXLLMProvider):
         )
 
 
+class GeminiProvider(OpenAIProvider):
+    """Google Gemini via the OpenAI-compatible endpoint."""
+
+    DEFAULT_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    DEFAULT_MODEL = "gemini-2.5-flash"
+
+    def __init__(
+        self,
+        api_key: str,
+        model: str | None,
+        timeout_seconds: int,
+        *,
+        base_url: str | None = None,
+    ) -> None:
+        super().__init__(
+            api_key=api_key,
+            model=model or self.DEFAULT_MODEL,
+            timeout_seconds=timeout_seconds,
+            base_url=base_url or self.DEFAULT_BASE_URL,
+        )
+
+
 class AzureOpenAIProvider(HTTPXLLMProvider):
     """Azure OpenAI chat completions implementation."""
 
@@ -282,9 +304,9 @@ def get_llm_provider(settings: Settings | None = None) -> LLMProvider | None:
             base_url=resolved_settings.llm_base_url,
         )
     if provider_name in {"gemini", "google"}:
-        return OpenAIProvider(
+        return GeminiProvider(
             **common_args,
-            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+            base_url=resolved_settings.llm_base_url,
         )
     if provider_name in {"azure", "azure-openai"}:
         return AzureOpenAIProvider(

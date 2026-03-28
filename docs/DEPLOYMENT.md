@@ -78,7 +78,9 @@ The compose file runs the app with:
 1. Connect the repository to Render using `render.yaml`
 2. Set the required secrets in the Render dashboard
 3. Deploy the `main` branch for production
-4. Optionally deploy the `staging` branch for pre-production validation
+4. The included staging service also targets `main` by default
+5. If you want branch-based pre-production validation later, create a
+   `staging` branch in GitHub and update `render.yaml`
 
 ## Operational notes
 

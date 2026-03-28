@@ -45,7 +45,9 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    branch: staging
+    # This repo currently ships only a main branch, so staging follows main
+    # until a dedicated staging branch is created in GitHub.
+    branch: main
     plan: starter
     numInstances: 1
     autoDeploy: true

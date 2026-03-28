@@ -73,7 +73,7 @@ class TestOrgUnitRoutes:
 
         assert response.status_code == 403
 
-    def test_selector_partial_renders_separate_open_and_select_actions(self, authenticated_client) -> None:
+    def test_selector_partial_renders_search_first_selector(self, authenticated_client) -> None:
         service = make_service_mock()
         service.get_user_roots = AsyncMock(
             return_value=[
@@ -96,9 +96,9 @@ class TestOrgUnitRoutes:
 
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/html")
-        assert "Browse hierarchy" in response.text
-        assert "Open" in response.text
-        assert "Select" in response.text
+        assert "Select an organisation unit" in response.text
+        assert "Start typing a district, facility, region, or national unit" in response.text
+        assert "Browse hierarchy" not in response.text
         assert "event.currentTarget" not in response.text
 
     def test_search_results_partial_returns_html(self, authenticated_client) -> None:

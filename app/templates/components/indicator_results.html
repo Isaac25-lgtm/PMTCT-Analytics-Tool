@@ -3,7 +3,7 @@
         <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-slate-900">{{ org_unit_name or org_unit_uid }}</h2>
-                <p class="mt-1 text-sm text-slate-500">{{ period }} · {{ valid_indicators }} of {{ total_indicators }} indicators valid</p>
+                <p class="mt-1 text-sm text-slate-500">{{ period }} - {{ valid_indicators }} of {{ total_indicators }} indicators valid</p>
             </div>
             <div class="status-badge status-success">{{ indicators_meeting_target }} meeting target</div>
         </div>
@@ -16,31 +16,80 @@
         </div>
         <div class="divide-y divide-slate-200">
             {% for result in group.results %}
-            <div class="flex flex-col gap-4 px-1 py-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                    <div class="font-medium text-slate-900">{{ result.indicator_name }}</div>
-                    <div class="mt-1 text-xs text-slate-500">{{ result.indicator_id }}</div>
+            <div class="indicator-result-item px-1 py-4">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                        <div class="font-medium text-slate-900">{{ result.indicator_name }}</div>
+                        <div class="mt-1 text-xs text-slate-500">{{ result.indicator_id }}</div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3 text-sm text-slate-600">
+                        <span class="rounded-full bg-slate-100 px-3 py-1">
+                            {% if result.numerator_value is not none %}
+                                {{ result.numerator_value|round(1) }}
+                                {% if result.denominator_value is not none %}/ {{ result.denominator_value|round(1) }}{% endif %}
+                            {% else %}
+                                No numerator / denominator
+                            {% endif %}
+                        </span>
+                        <span class="text-lg font-semibold {% if result.meets_target %}text-emerald-700{% elif result.is_valid %}text-slate-900{% else %}text-slate-400{% endif %}">
+                            {{ result.formatted_result }}
+                        </span>
+                        {% if result.target is not none %}
+                            {% if result.meets_target %}
+                            <span class="status-badge status-success">>= {{ result.target }}%</span>
+                            {% else %}
+                            <span class="status-badge status-danger">&lt; {{ result.target }}%</span>
+                            {% endif %}
+                        {% elif not result.is_valid %}
+                            <span class="status-badge status-unknown">{{ result.error_message or "No data" }}</span>
+                        {% endif %}
+                        <button
+                            type="button"
+                            class="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-moh-green"
+                            onclick="this.closest('.indicator-result-item').querySelector('[data-indicator-explainer]').classList.toggle('hidden')"
+                            title="Show indicator calculation notes"
+                        >
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
-                <div class="flex flex-wrap items-center gap-3 text-sm text-slate-600">
-                    <span class="rounded-full bg-slate-100 px-3 py-1">
-                        {% if result.numerator_value is not none %}
-                            {{ result.numerator_value|round(1) }}
-                            {% if result.denominator_value is not none %}/ {{ result.denominator_value|round(1) }}{% endif %}
-                        {% else %}
-                            No numerator / denominator
-                        {% endif %}
-                    </span>
-                    <span class="text-lg font-semibold {% if result.meets_target %}text-emerald-700{% elif result.is_valid %}text-slate-900{% else %}text-slate-400{% endif %}">
-                        {{ result.formatted_result }}
-                    </span>
+
+                <div data-indicator-explainer class="hidden mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    {% if result.denominator_value is not none and result.numerator_value is not none %}
+                    <p>
+                        <span class="font-semibold text-slate-700">Calculation:</span>
+                        {{ result.numerator_value|round(1) }} / {{ result.denominator_value|round(1) }} x 100
+                    </p>
+                    {% elif result.numerator_value is not none %}
+                    <p>
+                        <span class="font-semibold text-slate-700">Calculation:</span>
+                        reported count = {{ result.numerator_value|round(1) }}
+                    </p>
+                    {% else %}
+                    <p>
+                        <span class="font-semibold text-slate-700">Calculation:</span>
+                        result unavailable because the underlying source values were incomplete.
+                    </p>
+                    {% endif %}
                     {% if result.target is not none %}
-                        {% if result.meets_target %}
-                        <span class="status-badge status-success">≥ {{ result.target }}%</span>
-                        {% else %}
-                        <span class="status-badge status-danger">&lt; {{ result.target }}%</span>
-                        {% endif %}
-                    {% elif not result.is_valid %}
-                        <span class="status-badge status-unknown">{{ result.error_message or "No data" }}</span>
+                    <p class="mt-2">
+                        <span class="font-semibold text-slate-700">Target:</span>
+                        {{ result.target }}%
+                    </p>
+                    {% endif %}
+                    {% if result.is_valid %}
+                    <p class="mt-2">
+                        <span class="font-semibold text-slate-700">Interpretation:</span>
+                        {{ result.formatted_result }} {% if result.meets_target %}meets{% else %}does not yet meet{% endif %} the current target.
+                    </p>
+                    {% else %}
+                    <p class="mt-2">
+                        <span class="font-semibold text-slate-700">Interpretation:</span>
+                        {{ result.error_message or "No valid result could be calculated." }}
+                    </p>
                     {% endif %}
                 </div>
             </div>

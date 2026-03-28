@@ -20,93 +20,165 @@
         <div class="flex flex-col gap-4 border-b border-slate-200 px-1 pb-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-slate-900">WHO validation indicators</h2>
-                <p class="mt-1 text-sm text-slate-500">{{ org_unit_name or org_unit }} - {{ period }}</p>
+                <p class="mt-1 text-sm text-slate-500">{{ org_unit_name or org_unit }} - {{ period_label or period }}</p>
             </div>
-            {% set export_type = "scorecard" %}
-            {% include "components/export_buttons.html" %}
+            {% if comparison_mode == "single" %}
+                {% set export_type = "scorecard" %}
+                {% include "components/export_buttons.html" %}
+            {% else %}
+                <p class="text-sm text-slate-500">Comparison view is shown in-app only for now.</p>
+            {% endif %}
         </div>
         <div class="mt-4 overflow-x-auto">
-            <table class="min-w-full">
+            <table class="min-w-full border-collapse border border-slate-300">
                 <thead>
-                    <tr class="border-b-2 border-slate-300 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <th class="px-4 py-3">Indicator</th>
-                        <th class="px-4 py-3 text-right">Value</th>
-                        <th class="px-4 py-3 text-right">Target</th>
-                        <th class="px-4 py-3 text-center">Status</th>
-                        <th class="px-4 py-3 w-10"></th>
+                    <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th class="border border-slate-300 px-4 py-3">Indicator</th>
+                        <th class="border border-slate-300 px-4 py-3 text-right">Performance</th>
+                        <th class="border border-slate-300 px-4 py-3 text-right">Target</th>
+                        <th class="border border-slate-300 px-4 py-3 text-center">Status</th>
+                        <th class="border border-slate-300 px-4 py-3 w-10"></th>
                     </tr>
                 </thead>
                 <tbody class="text-sm">
                     {% for indicator in indicators %}
-                    <tr class="border-b border-slate-100
-                        {% if indicator.status == 'success' %}bg-emerald-50 scorecard-row-success
-                        {% elif indicator.status == 'warning' %}bg-amber-50 scorecard-row-warning
-                        {% elif indicator.status == 'danger' %}bg-rose-50 scorecard-row-danger
-                        {% else %}bg-slate-50 scorecard-row-unknown{% endif %}">
-                        <td class="px-4 py-3">
+                    {% set modal_id = "scorecard-indicator-modal-" ~ loop.index %}
+                    <tr class="bg-white">
+                        <td class="border border-slate-300 px-4 py-3">
                             <div class="font-medium text-slate-900">{{ indicator.name }}</div>
                             <div class="text-xs text-slate-500">{{ indicator.id }}</div>
                         </td>
-                        <td class="px-4 py-3 text-right font-semibold
-                            {% if indicator.status == 'success' %}text-emerald-800
-                            {% elif indicator.status == 'warning' %}text-amber-800
-                            {% elif indicator.status == 'danger' %}text-rose-800
-                            {% else %}text-slate-600{% endif %}">
+                        <td class="border border-slate-300 px-4 py-3 text-right font-semibold
+                            {% if indicator.status == 'success' %}bg-emerald-100 text-emerald-900
+                            {% elif indicator.status == 'warning' %}bg-amber-100 text-amber-900
+                            {% elif indicator.status == 'danger' %}bg-rose-100 text-rose-900
+                            {% else %}bg-slate-100 text-slate-700{% endif %}">
                             {{ indicator.formatted_value }}
                         </td>
-                        <td class="px-4 py-3 text-right text-slate-500">
+                        <td class="border border-slate-300 px-4 py-3 text-right text-slate-500">
                             {% if indicator.target is not none %}>= {{ indicator.target }}%{% else %}--{% endif %}
                         </td>
-                        <td class="px-4 py-3 text-center">
+                        <td class="border border-slate-300 px-4 py-3 text-center text-slate-700">
                             {% if indicator.status == "success" %}
-                            <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-800">
-                                <svg class="h-3 w-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
-                                Target met
-                            </span>
+                            Target met
                             {% elif indicator.status == "warning" %}
-                            <span class="inline-flex items-center gap-1 rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">Near target</span>
+                            Near target
                             {% elif indicator.status == "danger" %}
-                            <span class="inline-flex items-center gap-1 rounded-full bg-rose-100 px-3 py-1 text-xs font-semibold text-rose-800">Below target</span>
+                            Below target
                             {% else %}
-                            <span class="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">No data</span>
+                            No data
                             {% endif %}
                         </td>
-                        <td class="px-4 py-3 text-center">
-                            <button type="button" class="text-slate-400 hover:text-moh-green transition" onclick="this.closest('tr').nextElementSibling.classList.toggle('hidden')" title="Show calculation details">
-                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                        <td class="border border-slate-300 px-4 py-3 text-center">
+                            <button
+                                type="button"
+                                class="text-slate-400 transition hover:text-moh-green"
+                                onclick="toggleIndicatorFormulaModal('{{ modal_id }}', true)"
+                                title="Show calculation details"
+                            >
+                                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                </svg>
                             </button>
                         </td>
                     </tr>
-                    <tr class="hidden border-b border-slate-200">
-                        <td colspan="5" class="bg-white px-6 py-4">
-                            <div class="grid gap-3 sm:grid-cols-2 text-sm">
-                                {% if indicator.description %}
-                                <div><span class="font-semibold text-slate-700">Definition:</span> <span class="text-slate-600">{{ indicator.description }}</span></div>
-                                {% endif %}
-                                {% if indicator.numerator_label %}
-                                <div><span class="font-semibold text-slate-700">Numerator:</span> <span class="text-slate-600">{{ indicator.numerator_label }}</span></div>
-                                {% endif %}
-                                {% if indicator.denominator_label %}
-                                <div><span class="font-semibold text-slate-700">Denominator:</span> <span class="text-slate-600">{{ indicator.denominator_label }}</span></div>
-                                {% endif %}
-                                {% if indicator.target is not none %}
-                                <div><span class="font-semibold text-slate-700">Target:</span> <span class="text-slate-600">>= {{ indicator.target }}%</span></div>
-                                {% endif %}
-                                {% if indicator.notes %}
-                                <div class="sm:col-span-2"><span class="font-semibold text-slate-700">Notes:</span> <span class="text-slate-600">{{ indicator.notes }}</span></div>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
+
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     </div>
 
+    {% for indicator in indicators %}
+    {% set modal_id = "scorecard-indicator-modal-" ~ loop.index %}
+    <div id="{{ modal_id }}" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6">
+        <div class="w-full max-w-2xl rounded-3xl bg-white shadow-2xl">
+            <div class="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+                <div>
+                    <h3 class="text-lg font-semibold text-slate-900">{{ indicator.name }}</h3>
+                    <p class="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">{{ indicator.id }}</p>
+                </div>
+                <button
+                    type="button"
+                    class="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                    onclick="toggleIndicatorFormulaModal('{{ modal_id }}', false)"
+                    aria-label="Close indicator formula"
+                >
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4 px-6 py-5 text-sm text-slate-700">
+                {% if indicator.description %}
+                <p><span class="font-semibold text-slate-900">Definition:</span> {{ indicator.description }}</p>
+                {% endif %}
+                {% if indicator.numerator_label or indicator.numerator_formula %}
+                <p>
+                    <span class="font-semibold text-slate-900">Numerator:</span>
+                    {{ indicator.numerator_label or "Numerator" }}
+                    {% if indicator.numerator_formula %}
+                    <code class="ml-2 rounded bg-slate-100 px-2 py-1 text-xs text-slate-800">{{ indicator.numerator_formula }}</code>
+                    {% endif %}
+                </p>
+                {% if indicator.numerator_math %}
+                <p>
+                    <span class="font-semibold text-slate-900">Numerator maths:</span>
+                    <code class="ml-2 rounded bg-slate-100 px-2 py-1 text-xs text-slate-800">{{ indicator.numerator_math }}</code>
+                </p>
+                {% endif %}
+                {% endif %}
+                {% if indicator.denominator_label or indicator.denominator_formula %}
+                <p>
+                    <span class="font-semibold text-slate-900">Denominator:</span>
+                    {{ indicator.denominator_label or "Denominator" }}
+                    {% if indicator.denominator_formula %}
+                    <code class="ml-2 rounded bg-slate-100 px-2 py-1 text-xs text-slate-800">{{ indicator.denominator_formula }}</code>
+                    {% endif %}
+                </p>
+                {% if indicator.denominator_math %}
+                <p>
+                    <span class="font-semibold text-slate-900">Denominator maths:</span>
+                    <code class="ml-2 rounded bg-slate-100 px-2 py-1 text-xs text-slate-800">{{ indicator.denominator_math }}</code>
+                </p>
+                {% endif %}
+                {% endif %}
+                {% if indicator.formula_text %}
+                <p>
+                    <span class="font-semibold text-slate-900">Formula used:</span>
+                    <code class="ml-2 rounded bg-slate-100 px-2 py-1 text-xs text-slate-800">{{ indicator.formula_text }}</code>
+                </p>
+                {% endif %}
+                {% if indicator.formula_math %}
+                <p>
+                    <span class="font-semibold text-slate-900">Final maths:</span>
+                    <code class="ml-2 rounded bg-slate-100 px-2 py-1 text-xs text-slate-800">{{ indicator.formula_math }}</code>
+                </p>
+                {% endif %}
+                {% if indicator.denominator_formula == "expected_pregnancies" and annual_population %}
+                <p>
+                    <span class="font-semibold text-slate-900">Population assumption:</span>
+                    annual_population x {{ fertility_rate|default(0.05) }} x {{ selected_months|default(1) }} / 12 = {{ expected_pregnancies or "N/A" }}
+                </p>
+                {% endif %}
+                {% if indicator.target is not none %}
+                <p><span class="font-semibold text-slate-900">Target:</span> >= {{ indicator.target }}%</p>
+                {% endif %}
+                {% if indicator.interpretation %}
+                <p><span class="font-semibold text-slate-900">Interpretation:</span> {{ indicator.interpretation }}</p>
+                {% endif %}
+                {% if indicator.notes %}
+                <p><span class="font-semibold text-slate-900">Notes:</span> {{ indicator.notes }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+
     {% if indicators_json is defined %}
     <div class="card-panel">
-        <h3 class="text-lg font-semibold text-slate-900 mb-4">Target gap analysis</h3>
+        <h3 class="mb-4 text-lg font-semibold text-slate-900">Target gap analysis</h3>
         <div class="chart-shell">
             <canvas id="scorecard-gap-chart"></canvas>
         </div>
@@ -114,6 +186,75 @@
     <script>
     window.renderScorecardGapChart("scorecard-gap", "scorecard-gap-chart", {{ indicators_json|safe }});
     </script>
+    {% endif %}
+
+    {% if comparison_rows %}
+    <div class="card-panel">
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+                <h3 class="text-lg font-semibold text-slate-900">Comparison view</h3>
+                <p class="text-sm text-slate-500">Edit annual populations below to refine ANC-based comparisons within this session.</p>
+            </div>
+        </div>
+
+        <form hx-post="/api/reports/scorecard" hx-target="#scorecard-results" hx-indicator="#global-spinner" class="mt-5 space-y-4">
+            <input type="hidden" name="org_unit" value="{{ org_unit }}">
+            <input type="hidden" name="org_unit_name" value="{{ org_unit_name or '' }}">
+            <input type="hidden" name="comparison_mode" value="{{ comparison_mode }}">
+            <input type="hidden" name="period_start" value="{{ period_start or period }}">
+            <input type="hidden" name="period_end" value="{{ period_end or period }}">
+            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {% for row in comparison_rows %}
+                <label class="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
+                    <span class="block font-semibold text-slate-900">{{ row.org_unit_name }}</span>
+                    <span class="mt-1 block text-xs uppercase tracking-wide text-slate-400">Annual population</span>
+                    <input
+                        type="number"
+                        min="0"
+                        name="population_{{ row.org_unit_uid }}"
+                        value="{{ row.annual_population if row.annual_population is not none else '' }}"
+                        class="form-input"
+                        placeholder="Optional"
+                    >
+                </label>
+                {% endfor %}
+            </div>
+            <button type="submit" class="primary-button">Recalculate comparison</button>
+        </form>
+
+        <div class="mt-6 overflow-x-auto">
+            <table class="min-w-full border-collapse border border-slate-300 text-sm">
+                <thead>
+                    <tr class="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        <th class="border border-slate-300 px-4 py-2">Org unit</th>
+                        <th class="border border-slate-300 px-4 py-2 text-right">Score</th>
+                        <th class="border border-slate-300 px-4 py-2 text-right">Meeting target</th>
+                        {% for indicator in indicators %}
+                        <th class="border border-slate-300 px-4 py-2 text-center">{{ indicator.id }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in comparison_rows %}
+                    <tr class="bg-white">
+                        <td class="border border-slate-300 px-4 py-3 font-medium text-slate-900">{{ row.org_unit_name }}</td>
+                        <td class="border border-slate-300 px-4 py-3 text-right font-semibold {% if row.score_pct >= 80 %}text-emerald-700{% elif row.score_pct >= 60 %}text-amber-700{% else %}text-rose-700{% endif %}">
+                            {{ "%.0f"|format(row.score_pct) }}%
+                        </td>
+                        <td class="border border-slate-300 px-4 py-3 text-right text-slate-600">{{ row.meeting_target }}/{{ row.total_with_target }}</td>
+                        {% for indicator in row.indicators %}
+                        <td class="border border-slate-300 px-4 py-3 text-center">
+                            <span class="status-badge {% if indicator.status == 'success' %}status-success{% elif indicator.status == 'warning' %}status-warning{% elif indicator.status == 'danger' %}status-danger{% else %}status-unknown{% endif %}">
+                                {{ indicator.formatted_value }}
+                            </span>
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
     {% endif %}
 
     <p class="text-right text-xs text-slate-400">Generated {{ generated_at }}</p>

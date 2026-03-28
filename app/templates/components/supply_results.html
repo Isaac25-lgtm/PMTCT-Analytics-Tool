@@ -3,7 +3,7 @@
         <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-slate-900">Supply chain status</h2>
-                <p class="mt-1 text-sm text-slate-500">{{ org_unit_name or org_unit }} - {{ period }}</p>
+                <p class="mt-1 text-sm text-slate-500">{{ org_unit_name or org_unit }} - {{ period_label or period }}</p>
             </div>
             {% set export_type = "supply" %}
             {% include "components/export_buttons.html" %}
@@ -37,7 +37,7 @@
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <h2 class="text-xl font-semibold text-slate-900">{{ commodity.commodity }}</h2>
-                    <p class="mt-1 text-sm text-slate-500">{{ org_unit_name or org_unit }} - {{ period }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ org_unit_name or org_unit }} - {{ period_label or period }}</p>
                 </div>
                 {% if commodity.status == "ok" %}
                 <span class="status-badge status-success">Adequate stock</span>

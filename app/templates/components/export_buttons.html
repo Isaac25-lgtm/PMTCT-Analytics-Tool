@@ -6,6 +6,10 @@
     data-period="{{ period }}"
     data-org-unit-name="{{ org_unit_name or '' }}"
     {% if export_type == "cascade" %}data-cascade-type="{{ cascade_type }}"{% endif %}
+    {% if period_start is defined and period_start %}data-period-start="{{ period_start }}"{% endif %}
+    {% if period_end is defined and period_end %}data-period-end="{{ period_end }}"{% endif %}
+    {% if periodicity is defined and periodicity %}data-periodicity="{{ periodicity }}"{% endif %}
+    {% if annual_population is defined and annual_population is not none %}data-annual-population="{{ annual_population }}"{% endif %}
     {% if expected_pregnancies is not none %}data-expected-pregnancies="{{ expected_pregnancies }}"{% endif %}
 >
     <span class="mr-1 text-sm font-medium text-slate-500">Export</span>

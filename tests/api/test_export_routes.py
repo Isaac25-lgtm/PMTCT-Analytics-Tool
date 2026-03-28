@@ -4,9 +4,17 @@ API tests for export routes.
 
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
+
+
+def _mock_build_cached_connector(*args, **kwargs):
+    connector = AsyncMock()
+    connector.get_data_values = AsyncMock(return_value={})
+    connector.__aenter__ = AsyncMock(return_value=connector)
+    connector.__aexit__ = AsyncMock(return_value=False)
+    return connector
 
 
 @pytest.mark.api
@@ -68,6 +76,39 @@ class TestScorecardExport:
         assert response.headers["content-type"].startswith(
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
+
+    def test_export_scorecard_accepts_period_range_and_population(
+        self,
+        client,
+        valid_session,
+        mock_calculator,
+        override_dependencies,
+    ) -> None:
+        override_dependencies(session=valid_session, calculator=mock_calculator)
+
+        with patch(
+            "app.api.routes.exports.export_service.export_scorecard",
+            return_value=b"xlsx-data",
+        ), patch(
+            "app.api.routes.exports.export_service.get_filename",
+            return_value="scorecard.xlsx",
+        ), patch(
+            "app.api.routes.exports.export_service.get_content_type",
+            return_value="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ):
+            response = client.post(
+                "/api/exports/scorecard",
+                json={
+                    "org_unit": "akV6429SUqu",
+                    "period_start": "202401",
+                    "period_end": "202403",
+                    "annual_population": 100000,
+                    "format": "xlsx",
+                },
+            )
+
+        assert response.status_code == 200
+        mock_calculator.set_expected_pregnancies.assert_called_with("akV6429SUqu", 1250)
 
     def test_export_csv(
         self,
@@ -159,6 +200,9 @@ class TestSupplyExport:
         override_dependencies(session=valid_session, calculator=mock_calculator)
 
         with patch(
+            "app.supply.service.build_cached_connector",
+            _mock_build_cached_connector,
+        ), patch(
             "app.api.routes.exports.export_service.export_supply",
             return_value=b"xlsx-data",
         ), patch(
@@ -175,3 +219,38 @@ class TestSupplyExport:
 
         assert response.status_code == 200
         assert "attachment" in response.headers["content-disposition"]
+
+    def test_export_supply_accepts_period_range(
+        self,
+        client,
+        valid_session,
+        mock_calculator,
+        override_dependencies,
+    ) -> None:
+        override_dependencies(session=valid_session, calculator=mock_calculator)
+
+        with patch(
+            "app.supply.service.build_cached_connector",
+            _mock_build_cached_connector,
+        ), patch(
+            "app.api.routes.exports.export_service.export_supply",
+            return_value=b"xlsx-data",
+        ), patch(
+            "app.api.routes.exports.export_service.get_filename",
+            return_value="supply.xlsx",
+        ), patch(
+            "app.api.routes.exports.export_service.get_content_type",
+            return_value="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ):
+            response = client.post(
+                "/api/exports/supply",
+                json={
+                    "org_unit": "akV6429SUqu",
+                    "period_start": "202401",
+                    "period_end": "202403",
+                    "periodicity": "monthly",
+                    "format": "xlsx",
+                },
+            )
+
+        assert response.status_code == 200

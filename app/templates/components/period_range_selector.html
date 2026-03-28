@@ -20,7 +20,7 @@
     {% endif %}
     <div>
         <label for="{{ pfx }}-from" class="form-label">From</label>
-        <select id="{{ pfx }}-from" name="period_start" class="form-select" required>
+        <select id="{{ pfx }}-from" name="period_start" data-range-start-select class="form-select" required>
             {% for p in periods|reverse %}
             <option value="{{ p.id }}" {% if loop.index == (periods|length - 11) %}selected{% endif %}>{{ p.name }}</option>
             {% endfor %}
@@ -28,14 +28,15 @@
     </div>
     <div>
         <label for="{{ pfx }}-to" class="form-label">To</label>
-        <select id="{{ pfx }}-to" name="period_end" class="form-select" required>
+        <select id="{{ pfx }}-to" name="period_end" data-range-end-select class="form-select" required>
             {% for p in periods %}
             <option value="{{ p.id }}" {% if loop.first %}selected{% endif %}>{{ p.name }}</option>
             {% endfor %}
         </select>
+        <input type="hidden" name="period" value="{{ periods[0].id if periods else '' }}" data-range-period-hidden>
     </div>
     <div class="flex items-end">
-        <div class="flex flex-wrap gap-2">
+        <div class="flex flex-wrap gap-2" data-range-presets>
             <button type="button" class="preset-btn" data-preset="quarter" data-from="{{ pfx }}-from" data-to="{{ pfx }}-to">Quarter</button>
             <button type="button" class="preset-btn" data-preset="6months" data-from="{{ pfx }}-from" data-to="{{ pfx }}-to">6 months</button>
             <button type="button" class="preset-btn" data-preset="fy" data-from="{{ pfx }}-from" data-to="{{ pfx }}-to">FY</button>

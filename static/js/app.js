@@ -248,6 +248,18 @@
         if (container.dataset.cascadeType) {
             payload.cascade_type = container.dataset.cascadeType;
         }
+        if (container.dataset.periodStart) {
+            payload.period_start = container.dataset.periodStart;
+        }
+        if (container.dataset.periodEnd) {
+            payload.period_end = container.dataset.periodEnd;
+        }
+        if (container.dataset.periodicity) {
+            payload.periodicity = container.dataset.periodicity;
+        }
+        if (container.dataset.annualPopulation) {
+            payload.annual_population = Number(container.dataset.annualPopulation);
+        }
         if (container.dataset.expectedPregnancies) {
             payload.expected_pregnancies = Number(container.dataset.expectedPregnancies);
         }
@@ -353,6 +365,111 @@
         });
     }
 
+    function syncRangePeriod(container) {
+        const startSelect = container.querySelector("[data-range-start-select]");
+        const endSelect = container.querySelector("[data-range-end-select]");
+        const hiddenPeriod = container.querySelector("[data-range-period-hidden]");
+
+        if (!startSelect || !endSelect) {
+            return;
+        }
+
+        if (startSelect.value && endSelect.value && startSelect.value > endSelect.value) {
+            if (document.activeElement === startSelect) {
+                endSelect.value = startSelect.value;
+            } else {
+                startSelect.value = endSelect.value;
+            }
+        }
+
+        if (hiddenPeriod) {
+            hiddenPeriod.value = endSelect.value || startSelect.value || "";
+        }
+    }
+
+    function populateRangeSelect(select, periods, preferredValue) {
+        if (!select) {
+            return;
+        }
+
+        const fallbackValue = periods.length ? periods[0].id : "";
+        select.innerHTML = "";
+        periods.forEach((period) => {
+            const option = document.createElement("option");
+            option.value = period.id;
+            option.textContent = period.name;
+            select.appendChild(option);
+        });
+        select.value = periods.some((period) => period.id === preferredValue) ? preferredValue : fallbackValue;
+    }
+
+    function toggleRangePresets(container, periodicity) {
+        const presets = container.querySelector("[data-range-presets]");
+        if (!presets) {
+            return;
+        }
+        presets.classList.toggle("hidden", periodicity === "weekly");
+    }
+
+    async function loadRangePeriods(container) {
+        const periodicitySelect = container.querySelector("[data-periodicity-select]");
+        const startSelect = container.querySelector("[data-range-start-select]");
+        const endSelect = container.querySelector("[data-range-end-select]");
+        if (!periodicitySelect || !startSelect || !endSelect) {
+            return;
+        }
+
+        const periodicity = periodicitySelect.value || "monthly";
+        const count = periodicity === "weekly" ? 52 : 60;
+        const previousStart = startSelect.value;
+        const previousEnd = endSelect.value;
+
+        try {
+            const response = await fetch("/api/reports/periods?periodicity=" + encodeURIComponent(periodicity) + "&count=" + count, {
+                headers: { "X-Requested-With": "XMLHttpRequest" }
+            });
+            if (!response.ok) {
+                throw new Error("Failed to load range periods");
+            }
+
+            const data = await response.json();
+            const periods = data.periods || [];
+            populateRangeSelect(startSelect, periods.slice().reverse(), previousStart);
+            populateRangeSelect(endSelect, periods, previousEnd);
+            toggleRangePresets(container, periodicity);
+            syncRangePeriod(container);
+        } catch (error) {
+            showNotification("Unable to refresh date range options.", "error");
+        }
+    }
+
+    function initialisePeriodRanges(root) {
+        const containers = root.querySelectorAll("[data-period-range]");
+        containers.forEach((container) => {
+            if (container.dataset.periodRangeBound === "true") {
+                return;
+            }
+
+            container.dataset.periodRangeBound = "true";
+            const periodicitySelect = container.querySelector("[data-periodicity-select]");
+            const startSelect = container.querySelector("[data-range-start-select]");
+            const endSelect = container.querySelector("[data-range-end-select]");
+
+            if (periodicitySelect) {
+                periodicitySelect.addEventListener("change", () => loadRangePeriods(container));
+                toggleRangePresets(container, periodicitySelect.value || "monthly");
+            }
+            if (startSelect) {
+                startSelect.addEventListener("change", () => syncRangePeriod(container));
+            }
+            if (endSelect) {
+                endSelect.addEventListener("change", () => syncRangePeriod(container));
+            }
+
+            syncRangePeriod(container);
+        });
+    }
+
     function initialiseLogoutForm() {
         const form = document.getElementById("logout-form");
         if (!form || form.dataset.bound === "true") {
@@ -446,7 +563,7 @@
                 if (!fromSel || !toSel) return;
 
                 const toVal = toSel.value;
-                if (!toVal || toVal.length < 6) return;
+                if (!toVal || !/^\d{6}$/.test(toVal)) return;
 
                 const toYear = parseInt(toVal.substring(0, 4));
                 const toMonth = parseInt(toVal.substring(4, 6));
@@ -479,6 +596,9 @@
                 if (fromOpt) {
                     fromSel.value = fromId;
                 }
+
+                fromSel.dispatchEvent(new Event("change", { bubbles: true }));
+                toSel.dispatchEvent(new Event("change", { bubbles: true }));
             });
         });
     }
@@ -601,8 +721,18 @@
         });
     };
 
+    window.toggleIndicatorFormulaModal = function toggleIndicatorFormulaModal(modalId, show) {
+        const modal = document.getElementById(modalId);
+        if (!modal) {
+            return;
+        }
+        modal.classList.toggle("hidden", !show);
+        document.body.classList.toggle("overflow-hidden", !!show);
+    };
+
     document.addEventListener("DOMContentLoaded", () => {
         initialisePeriodControls(document);
+        initialisePeriodRanges(document);
         initialisePeriodPresets(document);
         initialiseLogoutForm();
         startSessionRefresh();
@@ -610,6 +740,7 @@
 
     document.body.addEventListener("htmx:afterSwap", (event) => {
         initialisePeriodControls(event.target);
+        initialisePeriodRanges(event.target);
         initialisePeriodPresets(event.target);
         initialiseLogoutForm();
     });

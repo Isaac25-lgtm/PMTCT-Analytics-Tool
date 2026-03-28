@@ -12,6 +12,13 @@ from app.connectors.schemas import OrgUnit
 from app.services.org_unit_service import OrgUnitHierarchyConfig, OrgUnitNode, OrgUnitService
 
 
+def _mock_cached_connector(connector: AsyncMock) -> AsyncMock:
+    """Wrap a mocked connector as the cached connector context manager."""
+    connector.__aenter__ = AsyncMock(return_value=connector)
+    connector.__aexit__ = AsyncMock(return_value=False)
+    return connector
+
+
 @pytest.fixture
 def hierarchy_config() -> OrgUnitHierarchyConfig:
     """Return a default hierarchy config without touching the shared singleton."""
@@ -80,13 +87,12 @@ class TestOrgUnitService:
         valid_session,
         hierarchy_config: OrgUnitHierarchyConfig,
     ) -> None:
-        with patch("app.services.org_unit_service.DHIS2Connector") as connector_cls:
-            connector = AsyncMock()
-            connector.get_user_org_units.return_value = [
-                OrgUnit(uid="district1", name="Kampala District", level=3),
-            ]
-            connector_cls.return_value.__aenter__.return_value = connector
+        connector = _mock_cached_connector(AsyncMock())
+        connector.get_user_org_units.return_value = [
+            OrgUnit(uid="district1", name="Kampala District", level=3),
+        ]
 
+        with patch("app.services.org_unit_service.build_cached_connector", return_value=connector):
             service = OrgUnitService(valid_session, config=hierarchy_config)
             roots = await service.get_user_roots()
 
@@ -101,31 +107,28 @@ class TestOrgUnitService:
         valid_session,
         hierarchy_config: OrgUnitHierarchyConfig,
     ) -> None:
-        with patch("app.services.org_unit_service.DHIS2Connector") as connector_cls:
-            connector = AsyncMock()
-            connector.get_user_org_units.return_value = [
-                OrgUnit(uid="district1", name="Kampala District", level=3),
-                OrgUnit(uid="district2", name="Wakiso District", level=3),
-            ]
+        connector = _mock_cached_connector(AsyncMock())
+        connector.search_org_units.return_value = [
+            OrgUnit(
+                uid="facility2",
+                name="Entebbe Hospital",
+                level=5,
+                parent_uid="district2",
+                parent_name="Wakiso District",
+            ),
+        ]
+        org_unit_map = {
+            "facility2": OrgUnit(uid="facility2", name="Entebbe Hospital", level=5, parent_uid="district2"),
+            "district2": OrgUnit(uid="district2", name="Wakiso District", level=3, parent_uid="region1"),
+            "region1": OrgUnit(uid="region1", name="Central Region", level=2),
+        }
 
-            async def get_hierarchy(root_uid: str, max_level: int | None = None):
-                if root_uid == "district1":
-                    return [OrgUnit(uid="district1", name="Kampala District", level=3)]
-                return [
-                    OrgUnit(uid="district2", name="Wakiso District", level=3),
-                    OrgUnit(
-                        uid="facility2",
-                        name="Entebbe Hospital",
-                        level=5,
-                        parent_uid="district2",
-                        parent_name="Wakiso District",
-                    ),
-                ]
+        async def get_org_unit(uid: str) -> OrgUnit:
+            return org_unit_map[uid]
 
-            connector.get_org_unit_hierarchy.side_effect = get_hierarchy
-            connector.get_org_unit.side_effect = lambda uid: OrgUnit(uid=uid, name=uid, level=3)
-            connector_cls.return_value.__aenter__.return_value = connector
+        connector.get_org_unit.side_effect = get_org_unit
 
+        with patch("app.services.org_unit_service.build_cached_connector", return_value=connector):
             service = OrgUnitService(valid_session, config=hierarchy_config)
             results = await service.search("Entebbe")
 
@@ -140,19 +143,21 @@ class TestOrgUnitService:
         hierarchy_config: OrgUnitHierarchyConfig,
         sample_hierarchy: dict[str, OrgUnit],
     ) -> None:
-        with patch("app.services.org_unit_service.DHIS2Connector") as connector_cls:
-            connector = AsyncMock()
-            connector.get_user_org_units.return_value = [
-                OrgUnit(uid="region1", name="Central Region", level=2),
-            ]
-            connector.get_org_unit_hierarchy.return_value = [
-                OrgUnit(uid="region1", name="Central Region", level=2),
-                sample_hierarchy["district"],
-                sample_hierarchy["hsd"],
-                sample_hierarchy["facility"],
-            ]
-            connector_cls.return_value.__aenter__.return_value = connector
+        connector = _mock_cached_connector(AsyncMock())
+        connector.search_org_units.return_value = [sample_hierarchy["facility"]]
+        org_unit_map = {
+            "facility1": sample_hierarchy["facility"],
+            "hsd1": sample_hierarchy["hsd"],
+            "district1": sample_hierarchy["district"],
+            "region1": sample_hierarchy["region"],
+        }
 
+        async def get_org_unit(uid: str) -> OrgUnit:
+            return org_unit_map[uid]
+
+        connector.get_org_unit.side_effect = get_org_unit
+
+        with patch("app.services.org_unit_service.build_cached_connector", return_value=connector):
             service = OrgUnitService(valid_session, config=hierarchy_config)
             results = await service.search("Mulago")
 
@@ -176,11 +181,10 @@ class TestOrgUnitService:
             ],
         )
 
-        with patch("app.services.org_unit_service.DHIS2Connector") as connector_cls:
-            connector = AsyncMock()
-            connector.get_org_unit.return_value = parent
-            connector_cls.return_value.__aenter__.return_value = connector
+        connector = _mock_cached_connector(AsyncMock())
+        connector.get_org_unit.return_value = parent
 
+        with patch("app.services.org_unit_service.build_cached_connector", return_value=connector):
             service = OrgUnitService(valid_session, config=hierarchy_config)
             parent_node, children = await service.get_children("region1", include_parent=True)
 
@@ -196,25 +200,43 @@ class TestOrgUnitService:
         hierarchy_config: OrgUnitHierarchyConfig,
         sample_hierarchy: dict[str, OrgUnit],
     ) -> None:
-        with patch("app.services.org_unit_service.DHIS2Connector") as connector_cls:
-            connector = AsyncMock()
-            connector.get_user_org_units.return_value = [
-                OrgUnit(uid="district1", name="Kampala District", level=3),
-            ]
+        connector = _mock_cached_connector(AsyncMock())
+        connector.get_user_org_units.return_value = [
+            OrgUnit(uid="district1", name="Kampala District", level=3),
+        ]
 
-            async def get_org_unit(uid: str) -> OrgUnit:
-                mapping = {
-                    "facility1": sample_hierarchy["facility"],
-                    "hsd1": sample_hierarchy["hsd"],
-                    "district1": sample_hierarchy["district"],
-                }
-                return mapping[uid]
+        async def get_org_unit(uid: str) -> OrgUnit:
+            mapping = {
+                "facility1": sample_hierarchy["facility"],
+                "hsd1": sample_hierarchy["hsd"],
+                "district1": sample_hierarchy["district"],
+            }
+            return mapping[uid]
 
-            connector.get_org_unit.side_effect = get_org_unit
-            connector_cls.return_value.__aenter__.return_value = connector
+        connector.get_org_unit.side_effect = get_org_unit
 
+        with patch("app.services.org_unit_service.build_cached_connector", return_value=connector):
             service = OrgUnitService(valid_session, config=hierarchy_config)
             has_access = await service.validate_user_access("facility1")
+
+        assert has_access is True
+
+    @pytest.mark.asyncio
+    async def test_validate_user_access_allows_globally_visible_org_unit(
+        self,
+        valid_session,
+        hierarchy_config: OrgUnitHierarchyConfig,
+    ) -> None:
+        service = OrgUnitService(valid_session, config=hierarchy_config)
+        service._ensure_user_roots = AsyncMock(
+            return_value=[OrgUnit(uid="district1", name="Kampala District", level=3)]
+        )
+        service._build_path = AsyncMock(return_value=["region9", "district9"])
+        service._fetch_org_unit = AsyncMock(
+            return_value=OrgUnit(uid="district9", name="Gulu District", level=3)
+        )
+
+        has_access = await service.validate_user_access("district9")
 
         assert has_access is True
 

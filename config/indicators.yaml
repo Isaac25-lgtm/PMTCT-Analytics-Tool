@@ -48,6 +48,9 @@ indicators:
     result_type: "percentage"
     target: 95.0
     periodicity: "monthly"
+    notes: |
+      Operational interpretation: women with documented known HIV status may be treated as already tested elsewhere.
+      The popup shows the exact configured HMIS maths used here, which is AN17a divided by AN01a.
 
   VAL-03:
     id: "VAL-03"

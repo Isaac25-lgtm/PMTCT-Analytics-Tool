@@ -89,7 +89,7 @@ async def admin_dashboard(
     diagnostics = SystemDiagnostics()
     validator = ConfigValidator()
     diagnostics_snapshot = await diagnostics.get_system_status()
-    context = build_page_context(request, session)
+    context = await build_page_context(request, session)
     context.update(
         {
             "active_page": "admin",

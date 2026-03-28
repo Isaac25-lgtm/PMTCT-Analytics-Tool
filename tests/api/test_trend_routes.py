@@ -110,6 +110,34 @@ class TestTrendAnalyzeEndpoint:
         assert data["periods"] == ["202401", "202402", "202403"]
         assert data["trends"][0]["result_type"] == "days"
 
+    def test_range_payload_is_accepted_for_trends(
+        self,
+        client,
+        valid_session,
+        mock_calculator,
+        loaded_registry,
+        override_dependencies,
+    ) -> None:
+        override_dependencies(
+            session=valid_session,
+            calculator=mock_calculator,
+            registry=loaded_registry,
+        )
+
+        response = client.post(
+            "/api/trends/analyze",
+            json={
+                "indicator_ids": ["VAL-02"],
+                "org_unit": "akV6429SUqu",
+                "period_start": "202401",
+                "period_end": "202403",
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["periods"] == ["202401", "202402", "202403"]
+
     def test_mixed_valid_and_invalid_period_results_are_supported(
         self,
         client,
@@ -213,12 +241,12 @@ class TestTrendAnalyzeEndpoint:
 
         response = client.post(
             "/api/trends/analyze",
-            data=[
-                ("indicator_ids", "VAL-02"),
-                ("org_unit", "akV6429SUqu"),
-                ("end_period", "202403"),
-                ("num_periods", "3"),
-            ],
+            data={
+                "indicator_ids": "VAL-02",
+                "org_unit": "akV6429SUqu",
+                "end_period": "202403",
+                "num_periods": "3",
+            },
             headers={"HX-Request": "true"},
         )
 
@@ -262,12 +290,12 @@ class TestTrendAnalyzeEndpoint:
         )
 
         request_kwargs = {
-            "data": [
-                ("indicator_ids", "VAL-02"),
-                ("org_unit", "akV6429SUqu"),
-                ("end_period", "202403"),
-                ("num_periods", "3"),
-            ],
+            "data": {
+                "indicator_ids": "VAL-02",
+                "org_unit": "akV6429SUqu",
+                "end_period": "202403",
+                "num_periods": "3",
+            },
             "headers": {"HX-Request": "true"},
         }
 
@@ -283,12 +311,24 @@ class TestTrendAnalyzeEndpoint:
 
 @pytest.mark.api
 class TestTrendPeriodsEndpoint:
-    def test_periods_are_bounded(self, client) -> None:
+    def test_periods_are_bounded(
+        self,
+        client,
+        valid_session,
+        override_dependencies,
+    ) -> None:
+        override_dependencies(session=valid_session)
         response = client.get("/api/trends/periods?count=13")
 
         assert response.status_code == 422
 
-    def test_periods_return_most_recent_first(self, client) -> None:
+    def test_periods_return_most_recent_first(
+        self,
+        client,
+        valid_session,
+        override_dependencies,
+    ) -> None:
+        override_dependencies(session=valid_session)
         response = client.get("/api/trends/periods?count=3")
 
         assert response.status_code == 200

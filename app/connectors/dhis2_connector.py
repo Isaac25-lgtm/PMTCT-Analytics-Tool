@@ -701,6 +701,41 @@ class DHIS2Connector:
             for ou in self._credentials.org_units
         ]
 
+    async def search_org_units(
+        self,
+        query: str,
+        *,
+        max_results: int = 20,
+    ) -> List[OrgUnit]:
+        """
+        Search organisation units visible to the authenticated user.
+
+        National users can search country-wide, while DHIS2 sharing still
+        constrains restricted users to what they can access.
+        """
+        normalized = query.strip()
+        if len(normalized) < 2:
+            return []
+
+        params = {
+            "fields": "id,name,level,path,parent[id,name]",
+            "paging": "false",
+            "filter": f"name:ilike:{normalized}",
+            "pageSize": str(max_results),
+        }
+
+        response = await self._request_with_retry(
+            "GET",
+            "organisationUnits",
+            params=params,
+        )
+
+        units = [
+            OrgUnit.from_dhis2_response(ou_data)
+            for ou_data in response.get("organisationUnits", [])
+        ]
+        return sorted(units, key=lambda unit: (unit.level or 99, unit.name.lower()))[:max_results]
+
     # =========================================================================
     # UTILITY METHODS
     # =========================================================================

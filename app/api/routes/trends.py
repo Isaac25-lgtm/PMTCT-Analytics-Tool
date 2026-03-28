@@ -20,6 +20,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 from app.api.deps import Calculator, CurrentSession, Registry, SessCache, require_permission
 from app.auth.permissions import Permission
 from app.api.routes.indicators import get_request_payload, normalize_list, resolve_org_unit_name
+from app.api.routes.reports import build_month_period_range
 from app.core.cache_keys import CacheKeys, get_cache_ttl
 from app.indicators.models import IndicatorResult, Periodicity
 from app.services.trends import IndicatorTrend, TrendService
@@ -35,8 +36,8 @@ class TrendRequest(BaseModel):
 
     indicator_ids: list[str] = Field(..., min_length=1, max_length=10)
     org_unit: str = Field(..., description="Organisation unit UID")
-    end_period: str = Field(..., description="Monthly DHIS2 period in YYYYMM format")
-    num_periods: int = Field(default=6, ge=3, le=12)
+    end_period: Optional[str] = Field(default=None, description="Monthly DHIS2 period in YYYYMM format")
+    num_periods: int = Field(default=6, ge=3, le=36)
     org_unit_name: Optional[str] = None
 
     @field_validator("indicator_ids")
@@ -51,7 +52,9 @@ class TrendRequest(BaseModel):
 
     @field_validator("end_period")
     @classmethod
-    def validate_end_period(cls, value: str) -> str:
+    def validate_end_period(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
         return TrendService.validate_monthly_period(value)
 
 
@@ -123,6 +126,23 @@ async def parse_trend_request(request: Request) -> TrendRequest:
 
     if payload.get("org_unit_name") in {"", None}:
         payload.pop("org_unit_name", None)
+
+    if payload.get("end_period") in {"", None} and payload.get("period_end") not in {"", None}:
+        payload["end_period"] = payload.get("period_end")
+
+    if payload.get("period_start") not in {"", None} and payload.get("period_end") not in {"", None}:
+        periods = build_month_period_range(
+            payload.get("end_period"),
+            payload.get("period_start"),
+            payload.get("period_end"),
+        )
+        payload["num_periods"] = len(periods)
+
+    if payload.get("end_period") in {"", None}:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=[{"loc": ["end_period"], "msg": "Field required", "type": "missing"}],
+        )
 
     try:
         return TrendRequest.model_validate(payload)

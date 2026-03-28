@@ -27,6 +27,7 @@ def _build_supply_calculator(supply_result_set):
     calculator.calculate_all = AsyncMock(return_value=supply_result_set)
     calculator.calculate_single = AsyncMock(return_value=None)
     calculator.set_expected_pregnancies = MagicMock()
+    calculator.clear_expected_pregnancies = MagicMock()
     return calculator
 
 

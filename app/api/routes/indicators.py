@@ -14,7 +14,7 @@ from typing import Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import Response
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from app.api.deps import Calculator, CurrentSession, Registry, require_permission
 from app.auth.permissions import Permission
@@ -145,6 +145,8 @@ def resolve_org_unit_name(
 async def parse_calculation_request(request: Request) -> CalculationRequest:
     """Build the calculation request from JSON or HTMX form data."""
     payload = await get_request_payload(request)
+    if payload.get("period") in {"", None} and payload.get("period_end") not in {"", None}:
+        payload["period"] = payload.get("period_end")
 
     payload["include_children"] = parse_checkbox(payload.get("include_children"))
 
@@ -163,7 +165,21 @@ async def parse_calculation_request(request: Request) -> CalculationRequest:
     if payload.get("expected_pregnancies") in {"", None}:
         payload.pop("expected_pregnancies", None)
 
-    return CalculationRequest.model_validate(payload)
+    try:
+        return CalculationRequest.model_validate(payload)
+    except ValidationError as exc:
+        detail = [
+            {
+                "loc": error.get("loc", []),
+                "msg": error.get("msg", "Invalid request"),
+                "type": error.get("type", "value_error"),
+            }
+            for error in exc.errors()
+        ]
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=detail,
+        ) from exc
 
 
 def group_results_by_category(
@@ -240,6 +256,10 @@ async def calculate_indicators(
             calc_request.org_unit,
             calc_request.expected_pregnancies,
         )
+    else:
+        clear_fn = getattr(calculator, "clear_expected_pregnancies", None)
+        if callable(clear_fn):
+            clear_fn(calc_request.org_unit)
 
     try:
         if calc_request.indicator_ids:
@@ -318,6 +338,10 @@ async def calculate_single_indicator(
 
     if expected_pregnancies is not None:
         calculator.set_expected_pregnancies(org_unit, expected_pregnancies)
+    else:
+        clear_fn = getattr(calculator, "clear_expected_pregnancies", None)
+        if callable(clear_fn):
+            clear_fn(org_unit)
 
     try:
         result = await calculator.calculate_single(

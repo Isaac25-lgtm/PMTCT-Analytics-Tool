@@ -21,7 +21,11 @@ from app.auth.permissions import Permission
 from app.auth.rbac import PermissionDeniedError
 from app.auth.rate_limit import RateLimitOperation, get_rate_limiter
 from app.api.routes.reports import (
-    get_status_color,
+    build_month_period_range,
+    build_period_label,
+    calculate_scorecard_indicators,
+    derive_expected_pregnancies,
+    get_fertility_rate,
     resolve_org_unit_name,
 )
 from app.core.config import get_settings
@@ -65,9 +69,12 @@ class ExportScorecardRequest(BaseModel):
 
     format: str = Field(..., pattern="^(pdf|xlsx|csv)$")
     org_unit: str
-    period: str
+    period: Optional[str] = None
+    period_start: Optional[str] = None
+    period_end: Optional[str] = None
     org_unit_name: Optional[str] = None
     expected_pregnancies: Optional[int] = Field(default=None, ge=0)
+    annual_population: Optional[int] = Field(default=None, ge=0)
 
 
 class ExportCascadeRequest(BaseModel):
@@ -85,8 +92,51 @@ class ExportSupplyRequest(BaseModel):
 
     format: str = Field(..., pattern="^(pdf|xlsx|csv)$")
     org_unit: str
-    period: str
+    period: Optional[str] = None
+    period_start: Optional[str] = None
+    period_end: Optional[str] = None
+    periodicity: Optional[str] = None
     org_unit_name: Optional[str] = None
+
+
+def resolve_selected_period(
+    period: str | None,
+    period_start: str | None = None,
+    period_end: str | None = None,
+) -> str:
+    """Resolve the concrete period value to use for calculations/exports."""
+    resolved = period or period_end or period_start
+    if not resolved:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="A period or period range is required.",
+        )
+    return resolved
+
+
+def build_export_period_label(
+    period: str,
+    period_start: str | None = None,
+    period_end: str | None = None,
+    periodicity: str | None = None,
+) -> str:
+    """Build a human-readable period label for export metadata."""
+    if not period_start and not period_end:
+        return period
+
+    if periodicity == "weekly":
+        start = period_start or period
+        end = period_end or period
+        return f"{start} to {end}" if start != end else start
+
+    try:
+        periods = build_month_period_range(period, period_start, period_end)
+    except HTTPException:
+        start = period_start or period
+        end = period_end or period
+        return f"{start} to {end}" if start != end else start
+
+    return build_period_label(periods) or period
 
 
 def download_response(file_bytes: bytes, filename: str, media_type: str) -> StreamingResponse:
@@ -172,37 +222,41 @@ async def export_scorecard(
         request_ip=get_client_ip(http_request),
     )
     org_unit_name = resolve_org_unit_name(session, request_body.org_unit, request_body.org_unit_name)
-    if request_body.expected_pregnancies is not None:
-        calculator.set_expected_pregnancies(request_body.org_unit, request_body.expected_pregnancies)
-
-    result_set = await calculator.calculate_all(
-        org_unit=request_body.org_unit,
-        period=request_body.period,
-        org_unit_name=org_unit_name,
-        categories=[IndicatorCategory.WHO_VALIDATION],
+    resolved_period = resolve_selected_period(
+        request_body.period,
+        request_body.period_start,
+        request_body.period_end,
     )
-
-    indicators: list[dict[str, object]] = []
-    meeting_target = 0
-    total_with_target = 0
-    for result in result_set.results:
-        indicators.append(
-            {
-                "id": result.indicator_id,
-                "name": result.indicator_name,
-                "value": result.result_value,
-                "formatted_value": result.formatted_result,
-                "target": result.target,
-                "status": get_status_color(result),
-                "numerator_value": result.numerator_value,
-                "denominator_value": result.denominator_value,
-            }
+    periods = build_month_period_range(
+        resolved_period,
+        request_body.period_start,
+        request_body.period_end,
+    )
+    period_label = build_period_label(periods)
+    expected_pregnancies = request_body.expected_pregnancies
+    if request_body.annual_population is not None:
+        expected_pregnancies = derive_expected_pregnancies(
+            request_body.annual_population,
+            periods,
+            get_fertility_rate(),
         )
-        if result.target is not None:
-            total_with_target += 1
-            if result.meets_target:
-                meeting_target += 1
 
+    if expected_pregnancies is not None:
+        calculator.set_expected_pregnancies(request_body.org_unit, expected_pregnancies)
+    else:
+        calculator.clear_expected_pregnancies(request_body.org_unit)
+
+    indicators = [
+        indicator.model_dump()
+        for indicator in await calculate_scorecard_indicators(
+            calculator,
+            request_body.org_unit,
+            org_unit_name,
+            periods,
+        )
+    ]
+    total_with_target = sum(1 for indicator in indicators if indicator.get("target") is not None)
+    meeting_target = sum(1 for indicator in indicators if indicator.get("meets_target"))
     summary = {
         "total": len(indicators),
         "meeting_target": meeting_target,
@@ -217,7 +271,7 @@ async def export_scorecard(
             summary,
             request_body.org_unit,
             org_unit_name,
-            request_body.period,
+            period_label or resolved_period,
         )
     except ExportDependencyError as exc:
         logger.error("Export dependency error: %s", exc)
@@ -234,13 +288,13 @@ async def export_scorecard(
         user_id=rbac.user_id,
         username=rbac.username,
         org_unit_uid=request_body.org_unit,
-        period=request_body.period,
+        period=period_label or resolved_period,
         indicators=[indicator["id"] for indicator in indicators],
     )
 
     return download_response(
         file_bytes,
-        export_service.get_filename("scorecard", org_unit_name or request_body.org_unit, request_body.period, request_body.format),
+        export_service.get_filename("scorecard", org_unit_name or request_body.org_unit, periods[-1], request_body.format),
         export_service.get_content_type(request_body.format),
     )
 
@@ -364,13 +418,24 @@ async def export_supply(
         request_ip=get_client_ip(http_request),
     )
     org_unit_name = resolve_org_unit_name(session, request_body.org_unit, request_body.org_unit_name)
+    resolved_period = resolve_selected_period(
+        request_body.period,
+        request_body.period_start,
+        request_body.period_end,
+    )
+    period_label = build_export_period_label(
+        resolved_period,
+        request_body.period_start,
+        request_body.period_end,
+        request_body.periodicity,
+    )
 
     from app.supply.service import SupplyService
 
     supply_svc = SupplyService(session=session, calculator=calculator)
     report = await supply_svc.get_supply_report(
         org_unit=request_body.org_unit,
-        period=request_body.period,
+        period=resolved_period,
         org_unit_name=org_unit_name,
     )
     commodities = report.to_legacy_commodities()
@@ -381,7 +446,7 @@ async def export_supply(
             commodities,
             request_body.org_unit,
             org_unit_name,
-            request_body.period,
+            period_label,
         )
     except ExportDependencyError as exc:
         logger.error("Export dependency error: %s", exc)
@@ -398,12 +463,12 @@ async def export_supply(
         user_id=rbac.user_id,
         username=rbac.username,
         org_unit_uid=request_body.org_unit,
-        period=request_body.period,
+        period=period_label,
         indicators=["SUP-01", "SUP-02", "SUP-03", "SUP-04", "SUP-05", "SUP-06"],
     )
 
     return download_response(
         file_bytes,
-        export_service.get_filename("supply_status", org_unit_name or request_body.org_unit, request_body.period, request_body.format),
+        export_service.get_filename("supply_status", org_unit_name or request_body.org_unit, resolved_period, request_body.format),
         export_service.get_content_type(request_body.format),
     )

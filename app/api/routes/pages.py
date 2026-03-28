@@ -28,6 +28,7 @@ from app.auth.roles import get_role_from_session
 from app.core.config import get_settings, load_yaml_config
 from app.indicators.models import IndicatorCategory, Periodicity
 from app.indicators.registry import get_indicator_registry
+from app.services.cached_org_units import build_cached_org_unit_service
 from app.services.trends import TrendService
 
 router = APIRouter()
@@ -47,13 +48,17 @@ def _get_fertility_rate() -> float:
         return 0.05
 
 
-def build_page_context(request: Request, session: Any) -> dict[str, Any]:
+async def build_page_context(request: Request, session: Any) -> dict[str, Any]:
     """Build the shared template context for authenticated pages."""
     credentials = session.credentials
     role_info = get_role_from_session(session)
     permissions = sorted(
         permission.value for permission in get_user_permissions(role_info)
     ) if role_info else []
+    org_unit_service = build_cached_org_unit_service(session)
+    selector_roots = await org_unit_service.get_user_roots()
+    selector_selected_node = None
+    selector_breadcrumbs: list[dict[str, Any]] = []
 
     return {
         "request": request,
@@ -73,6 +78,9 @@ def build_page_context(request: Request, session: Any) -> dict[str, Any]:
             history_depth="36m",
         ),
         "fertility_rate": _get_fertility_rate(),
+        "selector_roots": selector_roots,
+        "selector_selected_node": selector_selected_node,
+        "selector_breadcrumbs": selector_breadcrumbs,
     }
 
 
@@ -112,7 +120,7 @@ async def dashboard_page(request: Request) -> HTMLResponse:
     if not session:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
-    context = build_page_context(request, session)
+    context = await build_page_context(request, session)
     context["active_page"] = "dashboard"
     return templates.TemplateResponse(request, "dashboard.html", context)
 
@@ -124,7 +132,7 @@ async def indicators_page(request: Request) -> HTMLResponse:
     if not session:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
-    context = build_page_context(request, session)
+    context = await build_page_context(request, session)
     context["active_page"] = "indicators"
     context["categories"] = [
         {"id": category.value, "name": category.name.replace("_", " ").title()}
@@ -146,7 +154,7 @@ async def cascade_page(request: Request, cascade_type: str) -> HTMLResponse:
             detail="Unknown cascade type",
         )
 
-    context = build_page_context(request, session)
+    context = await build_page_context(request, session)
     context["active_page"] = "cascade"
     context["cascade_type"] = cascade_type
     return templates.TemplateResponse(request, "cascade.html", context)
@@ -159,7 +167,7 @@ async def supply_page(request: Request) -> HTMLResponse:
     if not session:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
-    context = build_page_context(request, session)
+    context = await build_page_context(request, session)
     context["active_page"] = "supply"
     return templates.TemplateResponse(request, "supply.html", context)
 
@@ -171,9 +179,12 @@ async def trends_page(request: Request) -> HTMLResponse:
     if not session:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
-    context = build_page_context(request, session)
+    context = await build_page_context(request, session)
     context["active_page"] = "trends"
-    context["periods"] = trend_service.build_monthly_period_options(count=12)
+    context["periods"] = build_periods(
+        periodicity=DEFAULT_PERIODICITY,
+        history_depth="36m",
+    )
     context["org_units"] = [
         {"id": org_unit.get("id"), "name": org_unit.get("name")}
         for org_unit in context.get("org_units", [])
@@ -206,7 +217,7 @@ async def data_quality_page(
     if not session:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
-    context = build_page_context(request, session)
+    context = await build_page_context(request, session)
     context["active_page"] = "data_quality"
     context["periods"] = build_periods(
         periodicity=DEFAULT_PERIODICITY,
@@ -232,7 +243,7 @@ async def alerts_page(
     if not session:
         return RedirectResponse(url="/login", status_code=status.HTTP_302_FOUND)
 
-    context = build_page_context(request, session)
+    context = await build_page_context(request, session)
     context["active_page"] = "alerts"
     context["periods"] = build_periods(
         periodicity="monthly",
@@ -263,7 +274,7 @@ async def insights_page(
     if not role_info or not check_permission(role_info, Permission.USE_AI_INSIGHTS).granted:
         return RedirectResponse(url="/dashboard", status_code=status.HTTP_302_FOUND)
 
-    context = build_page_context(request, session)
+    context = await build_page_context(request, session)
     context["active_page"] = "insights"
     context["periods"] = build_periods(
         periodicity="monthly",

@@ -55,6 +55,7 @@ def build_result(
     meets_target: bool | None = None,
     is_valid: bool = True,
     error_message: str | None = None,
+    data_elements_used: dict[str, float | None] | None = None,
 ) -> IndicatorResult:
     """Build a realistic indicator result for tests."""
     return IndicatorResult(
@@ -72,6 +73,7 @@ def build_result(
         meets_target=meets_target,
         is_valid=is_valid,
         error_message=error_message,
+        data_elements_used=data_elements_used or {},
     )
 
 
@@ -354,6 +356,7 @@ def sample_valid_result() -> IndicatorResult:
         denominator_value=1000.0,
         target=95.0,
         meets_target=True,
+        data_elements_used={"AN17a": 950.0, "AN01a": 1000.0},
     )
 
 
@@ -521,6 +524,7 @@ def mock_calculator(
     calculator.calculate_all = AsyncMock(return_value=sample_result_set)
     calculator.calculate_single = AsyncMock(return_value=sample_valid_result)
     calculator.set_expected_pregnancies = MagicMock()
+    calculator.clear_expected_pregnancies = MagicMock()
     return calculator
 
 

@@ -122,17 +122,17 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-slate-200 text-sm text-slate-700">
-                        {% for value in trend.values %}
+                        {% for value in trend["values"] %}
                         <tr class="{% if loop.index is even %}bg-slate-50/80{% else %}bg-white{% endif %}">
                             <td class="px-4 py-3 font-medium text-slate-900">{{ value.period_label }}</td>
                             <td class="px-4 py-3 text-right {% if not value.is_valid %}text-slate-400{% endif %}">
-                                {% if value.value is not none %}
+                                {% if value["value"] is not none %}
                                     {% if trend.result_type == "percentage" %}
-                                        {{ "%.1f"|format(value.value) }}%
+                                        {{ "%.1f"|format(value["value"]) }}%
                                     {% elif trend.result_type == "days" %}
-                                        {{ "%.0f"|format(value.value) }} days
+                                        {{ "%.0f"|format(value["value"]) }} days
                                     {% else %}
-                                        {{ "%.0f"|format(value.value) }}
+                                        {{ "%.0f"|format(value["value"]) }}
                                     {% endif %}
                                 {% else %}
                                     N/A

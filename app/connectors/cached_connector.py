@@ -287,6 +287,22 @@ class CachedDHIS2Connector:
     async def get_user_org_units(self) -> list[OrgUnit]:
         return await self._connector.get_user_org_units()
 
+    async def search_org_units(
+        self,
+        query: str,
+        *,
+        max_results: int = 20,
+        use_cache: bool = True,
+    ) -> list[OrgUnit]:
+        if not use_cache:
+            return await self._connector.search_org_units(query, max_results=max_results)
+        key = CacheKeys.org_unit_search(query, None, max_results)
+        return await self._session_cache.get_or_set_async(
+            key,
+            lambda: self._connector.search_org_units(query, max_results=max_results),
+            ttl=get_cache_ttl("hierarchy"),
+        )
+
     def invalidate_metadata(self) -> int:
         deleted = 0
         deleted += self._app_cache.delete_pattern("orgunit:")

@@ -56,12 +56,19 @@ class TestProtectedPages:
 
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/html")
+        assert "Select an organisation unit" in response.text
+        assert 'name="annual_population"' in response.text
+        assert 'name="period_start"' in response.text
+        assert 'name="period_end"' in response.text
 
     def test_indicators_page_renders(self, authenticated_client) -> None:
         response = authenticated_client.get("/indicators")
 
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/html")
+        assert "Select an organisation unit" in response.text
+        assert 'name="period_start"' in response.text
+        assert 'name="period_end"' in response.text
 
     @pytest.mark.parametrize("cascade_type", ["hiv", "hbv", "syphilis"])
     def test_cascade_pages_render(self, authenticated_client, cascade_type: str) -> None:
@@ -80,6 +87,8 @@ class TestProtectedPages:
 
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/html")
+        assert 'name="periodicity"' in response.text
+        assert "Weekly reporting frequency" in response.text
 
     def test_data_quality_page_renders(self, authenticated_client) -> None:
         response = authenticated_client.get("/data-quality")
@@ -111,6 +120,8 @@ class TestProtectedPages:
         assert response.headers["content-type"].startswith("text/html")
         assert "Multi-period indicator comparison" in response.text
         assert "SYS-03" not in response.text
+        assert 'name="period_start"' in response.text
+        assert 'name="period_end"' in response.text
 
     def test_expired_session_redirects_to_login(self, client, fresh_session_manager, expired_session) -> None:
         fresh_session_manager.create_session(expired_session)
@@ -173,10 +184,18 @@ class TestPageContext:
         response = authenticated_client.get("/dashboard")
 
         assert response.status_code == 200
-        assert "Test District" in response.text or "akV6429SUqu" in response.text
+        assert "Select an organisation unit" in response.text
+        assert "No organisation unit selected yet." in response.text
+        assert 'id="dashboard-org-unit-selector-input"' in response.text
 
     def test_pages_have_periods(self, authenticated_client) -> None:
         response = authenticated_client.get("/indicators")
 
         assert response.status_code == 200
         assert "January" in response.text or "Week" in response.text or "Q" in response.text
+
+    def test_dashboard_does_not_show_weekly_frequency_control(self, authenticated_client) -> None:
+        response = authenticated_client.get("/dashboard")
+
+        assert response.status_code == 200
+        assert 'name="periodicity"' not in response.text

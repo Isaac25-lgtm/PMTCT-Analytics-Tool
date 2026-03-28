@@ -45,6 +45,10 @@ class CachedIndicatorCalculator:
         self._calculator.set_expected_pregnancies(org_unit, value)
         self.invalidate()
 
+    def clear_expected_pregnancies(self, org_unit: str | None = None) -> None:
+        self._calculator.clear_expected_pregnancies(org_unit)
+        self.invalidate()
+
     async def calculate_single(
         self,
         indicator_id: str,

@@ -336,7 +336,29 @@ class OrgUnitService:
         if root_uid:
             root_uids = [root_uid]
         else:
-            root_uids = [root.uid for root in await self._ensure_user_roots()]
+            async with build_cached_connector(self._session) as connector:
+                matches = await connector.search_org_units(normalized, max_results=max_results)
+            for org_unit in matches:
+                self._org_unit_cache[org_unit.uid] = org_unit
+
+            results: list[OrgUnitSearchResult] = []
+            for org_unit in matches:
+                level = org_unit.level or 0
+                results.append(
+                    OrgUnitSearchResult(
+                        uid=org_unit.uid,
+                        name=org_unit.name,
+                        level=level,
+                        level_name=self._config.get_level(level).name,
+                        path_display=await self._build_live_path_display(org_unit.uid),
+                        match_score=self._calculate_match_score(org_unit.name, normalized),
+                    )
+                )
+
+            return sorted(
+                results,
+                key=lambda result: (-result.match_score, result.level, result.name.lower()),
+            )[:max_results]
 
         if not root_uids:
             return []
@@ -371,13 +393,32 @@ class OrgUnitService:
         return ordered[:max_results]
 
     async def validate_user_access(self, uid: str) -> bool:
-        """Return True when the requested org unit is within the user's scope."""
+        """Return True when the requested org unit is visible to this session.
+
+        DHIS2 `/api/me` organisation units reflect assignment roots and are not
+        always the full analysis scope. National-analysis users can still have a
+        narrow data-entry root such as one district. We therefore keep the fast
+        descendant check for assigned roots, then fall back to a direct DHIS2
+        org-unit fetch and accept the unit when the authenticated session can
+        resolve it successfully.
+        """
         user_roots = await self._ensure_user_roots()
         root_uids = {root.uid for root in user_roots}
         if uid in root_uids:
             return True
-        path = await self._build_path(uid)
-        return any(root_uid in path for root_uid in root_uids)
+        try:
+            path = await self._build_path(uid)
+        except Exception:
+            path = []
+        if any(root_uid in path for root_uid in root_uids):
+            return True
+
+        try:
+            await self._fetch_org_unit(uid)
+            return True
+        except Exception:
+            logger.debug("Org-unit access denied or lookup failed for %s", uid, exc_info=True)
+            return False
 
     async def _ensure_user_roots(self) -> list[OrgUnit]:
         if self._user_roots is None:
@@ -453,6 +494,24 @@ class OrgUnitService:
 
         ancestor_names.reverse()
         return " > ".join(ancestor_names)
+
+    async def _build_live_path_display(self, uid: str) -> str:
+        """Build a readable ancestor path by following parent links live."""
+        names: list[str] = []
+        visited: set[str] = set()
+        current_uid = uid
+
+        while current_uid and current_uid not in visited:
+            visited.add(current_uid)
+            org_unit = await self._fetch_org_unit(current_uid)
+            current_uid = org_unit.parent_uid
+            if not current_uid:
+                break
+            parent = await self._fetch_org_unit(current_uid)
+            names.append(parent.name)
+
+        names.reverse()
+        return " > ".join(names)
 
     @staticmethod
     def _calculate_match_score(name: str, query: str) -> float:

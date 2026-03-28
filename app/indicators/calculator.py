@@ -65,6 +65,13 @@ class IndicatorCalculator:
         """
         self._population_data[org_unit] = value
 
+    def clear_expected_pregnancies(self, org_unit: str | None = None) -> None:
+        """Clear expected-pregnancy overrides for one org unit or all."""
+        if org_unit is None:
+            self._population_data.clear()
+            return
+        self._population_data.pop(org_unit, None)
+
     async def calculate_all(
         self,
         org_unit: str,

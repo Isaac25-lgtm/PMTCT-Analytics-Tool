@@ -65,6 +65,7 @@ class OrgUnit(BaseModel):
     uid: str = Field(alias="id")
     name: str
     level: Optional[int] = None
+    path: Optional[str] = None
     parent_uid: Optional[str] = None
     parent_name: Optional[str] = None
     children: List["OrgUnit"] = Field(default_factory=list)
@@ -76,6 +77,7 @@ class OrgUnit(BaseModel):
             uid=response.get("id"),
             name=response.get("name"),
             level=response.get("level"),
+            path=response.get("path"),
             parent_uid=parent.get("id"),
             parent_name=parent.get("name"),
             children=[

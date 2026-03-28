@@ -4,7 +4,17 @@ API tests for report routes.
 
 from __future__ import annotations
 
+from unittest.mock import AsyncMock, patch
+
 import pytest
+
+
+def _mock_build_cached_connector(*args, **kwargs):
+    connector = AsyncMock()
+    connector.get_data_values = AsyncMock(return_value={})
+    connector.__aenter__ = AsyncMock(return_value=connector)
+    connector.__aexit__ = AsyncMock(return_value=False)
+    return connector
 
 
 @pytest.mark.api
@@ -43,6 +53,72 @@ class TestScorecardEndpoint:
 
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/html")
+        assert "Numerator maths" in response.text
+        assert "AN17a = 950 = 950" in response.text
+        assert "AN01a = 1,000 = 1,000" in response.text
+        assert "(950 / 1,000) x 100 = 95%" in response.text
+
+    def test_scorecard_accepts_period_range_and_derives_expected_pregnancies(
+        self,
+        client,
+        valid_session,
+        mock_calculator,
+        override_dependencies,
+    ) -> None:
+        override_dependencies(session=valid_session, calculator=mock_calculator)
+
+        response = client.post(
+            "/api/reports/scorecard",
+            json={
+                "org_unit": "akV6429SUqu",
+                "period_start": "202401",
+                "period_end": "202403",
+                "annual_population": 100000,
+            },
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["period"] == "202403"
+        assert data["period_start"] == "202401"
+        assert data["period_end"] == "202403"
+        assert data["period_label"] == "Jan 2024 to Mar 2024"
+        mock_calculator.set_expected_pregnancies.assert_called_with("akV6429SUqu", 1250)
+
+    def test_scorecard_comparison_mode_returns_comparison_markup(
+        self,
+        client,
+        valid_session,
+        mock_calculator,
+        override_dependencies,
+    ) -> None:
+        override_dependencies(session=valid_session, calculator=mock_calculator)
+
+        with patch(
+            "app.api.routes.reports.resolve_comparison_units",
+            AsyncMock(
+                return_value=[
+                    {"uid": "fac-1", "name": "Facility One", "level": 5},
+                    {"uid": "fac-2", "name": "Facility Two", "level": 5},
+                ]
+            ),
+        ):
+            response = client.post(
+                "/api/reports/scorecard",
+                data={
+                    "org_unit": "akV6429SUqu",
+                    "period_start": "202401",
+                    "period_end": "202403",
+                    "comparison_mode": "district_facilities",
+                    "population_fac-1": "20000",
+                },
+                headers={"HX-Request": "true"},
+            )
+
+        assert response.status_code == 200
+        assert "Comparison view" in response.text
+        assert "population_fac-1" in response.text
+        assert "Facility One" in response.text
 
     def test_scorecard_requires_auth(self, client) -> None:
         response = client.post(
@@ -127,10 +203,14 @@ class TestSupplyEndpoint:
     ) -> None:
         override_dependencies(session=valid_session, calculator=mock_calculator)
 
-        response = client.post(
-            "/api/reports/supply-status",
-            json={"org_unit": "akV6429SUqu", "period": "202401"},
-        )
+        with patch(
+            "app.supply.service.build_cached_connector",
+            _mock_build_cached_connector,
+        ):
+            response = client.post(
+                "/api/reports/supply-status",
+                json={"org_unit": "akV6429SUqu", "period": "202401"},
+            )
 
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("application/json")
@@ -144,14 +224,38 @@ class TestSupplyEndpoint:
     ) -> None:
         override_dependencies(session=valid_session, calculator=mock_calculator)
 
-        response = client.post(
-            "/api/reports/supply-status",
-            data={"org_unit": "akV6429SUqu", "period": "202401"},
-            headers={"HX-Request": "true"},
-        )
+        with patch(
+            "app.supply.service.build_cached_connector",
+            _mock_build_cached_connector,
+        ):
+            response = client.post(
+                "/api/reports/supply-status",
+                data={"org_unit": "akV6429SUqu", "period": "202401"},
+                headers={"HX-Request": "true"},
+            )
 
         assert response.status_code == 200
         assert response.headers["content-type"].startswith("text/html")
+
+    def test_supply_accepts_period_end_fallback(
+        self,
+        client,
+        valid_session,
+        mock_calculator,
+        override_dependencies,
+    ) -> None:
+        override_dependencies(session=valid_session, calculator=mock_calculator)
+
+        with patch(
+            "app.supply.service.build_cached_connector",
+            _mock_build_cached_connector,
+        ):
+            response = client.post(
+                "/api/reports/supply-status",
+                json={"org_unit": "akV6429SUqu", "period_end": "202401", "periodicity": "weekly"},
+            )
+
+        assert response.status_code == 200
 
 
 @pytest.mark.api

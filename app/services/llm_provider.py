@@ -281,6 +281,11 @@ def get_llm_provider(settings: Settings | None = None) -> LLMProvider | None:
             **common_args,
             base_url=resolved_settings.llm_base_url,
         )
+    if provider_name in {"gemini", "google"}:
+        return OpenAIProvider(
+            **common_args,
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        )
     if provider_name in {"azure", "azure-openai"}:
         return AzureOpenAIProvider(
             api_key=resolved_settings.llm_api_key,

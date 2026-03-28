@@ -1,319 +1,234 @@
-# PMTCT Triple Elimination Analytics Tool
+<div align="center">
 
-Stateless, DHIS2-connected analytics dashboard for monitoring Uganda's PMTCT Triple Elimination programme across **HIV**, **syphilis**, and **hepatitis B** — built for the Ministry of Health.
+# 🔬 PMTCT Triple Elimination Analytics Tool
 
-The tool connects directly to Uganda's Health Management Information System (DHIS2) at the point of use. It does not store patient data, does not maintain a local database, and does not persist credentials beyond the active browser session.
+### Real-time DHIS2-powered analytics for eliminating mother-to-child transmission of HIV, Syphilis & Hepatitis B across Uganda
 
----
+[![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![DHIS2](https://img.shields.io/badge/DHIS2-Connected-0080FF?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48Y2lyY2xlIGN4PSIxMiIgY3k9IjEyIiByPSIxMCIgZmlsbD0id2hpdGUiLz48L3N2Zz4=&logoColor=white)](https://dhis2.org)
+[![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
+[![Deploy](https://img.shields.io/badge/Render-Deployed-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://render.com)
 
-## What It Does
+<br/>
 
-The tool pulls live data from DHIS2 and computes **30 programme indicators** across six categories:
+**A stateless, config-driven analytics dashboard** built for the Uganda Ministry of Health to monitor PMTCT Triple Elimination performance across **146 districts** -- transforming raw DHIS2 health data into actionable intelligence for program managers, district health officers, and implementing partners.
 
-| Category | Indicators | Coverage |
-|---|---|---|
-| WHO Validation | VAL-01 through VAL-06 | ANC coverage, first trimester attendance, testing uptake benchmarks |
-| HIV Cascade | HIV-01 through HIV-10 | Testing, positivity, ART initiation, early infant diagnosis, viral suppression |
-| Hepatitis B | HBV-01 through HBV-08 | HBsAg screening, positivity rate, birth dose coverage |
-| Syphilis | SYP-01 | Testing, positivity, treatment completion |
-| Supply Chain | SUP-01 through SUP-06 | Consumption, stockout days, days-of-use for tracer commodities |
-| System | SYS-01, SYS-03 | Reporting completeness, data quality composite score |
+<br/>
 
-It maps **49 DHIS2 data elements** and **5 category option combos** from HMIS 105 (ANC, Maternity, EID, Immunization) and HMIS 033B (weekly surveillance, stock reporting) to these indicators using config-driven YAML definitions.
-
-On top of the raw numbers, the tool provides:
-
-- **WHO validation scorecards** with period ranges, child org-unit comparison, and composite risk scoring
-- **Data quality checks** using configurable rule sets (consistency, completeness, outlier detection)
-- **Alert engine** with threshold-based triggers for coverage drops, stockouts, and missed appointments
-- **Trend analysis** across monthly periods with directional indicators
-- **AI-generated insights** (optional) via a vendor-neutral LLM integration supporting Anthropic, OpenAI, and Azure OpenAI
-- **Excel and PDF exports** for offline reporting and district review meetings
-- **Org-unit hierarchy navigation** with search, breadcrumbs, and drill-down from national to facility level
+[Getting Started](#-quick-start) · [Features](#-key-features) · [Architecture](#-architecture) · [Documentation](#-documentation) · [Deployment](#-deployment)
 
 ---
 
-## Architecture
+</div>
+
+## 🎯 The Problem
+
+Uganda's PMTCT program generates thousands of data points weekly across hundreds of health facilities. Program managers need to:
+
+- **Detect emerging coverage gaps** before they become crises
+- **Monitor triple elimination targets** (HIV, syphilis, hepatitis B) simultaneously
+- **Identify supply chain risks** that threaten service delivery
+- **Track data quality** to ensure decision-making rests on reliable information
+
+Without a purpose-built analytics layer, this means hours of manual Excel work per district, delayed response to outbreaks, and fragmented visibility across the cascade.
+
+## 💡 The Solution
+
+This tool connects directly to Uganda's national DHIS2 instance and delivers **automated, real-time analytics** through an intuitive web dashboard -- no local data storage, no complex setup, no manual extraction.
+
+<div align="center">
 
 ```
-+--------------------------------------------------+
-|                    Browser                        |
-|         Jinja2 + HTMX + Chart.js + Tailwind      |
-+------------------+-------------------------------+
-                   |  Session cookie (httponly, secure)
-+------------------v-------------------------------+
-|               FastAPI Application                 |
-|                                                   |
-|  +---------+ +----------+ +-------------------+  |
-|  |  Auth   | | RBAC +   | |   Middleware       |  |
-|  | (DHIS2) | | Audit    | | CSRF / Rate Limit  |  |
-|  +----+----+ +----------+ | Security Headers   |  |
-|       |                   | Request Logging    |  |
-|  +----v------------------+-------------------+   |
-|  |   DHIS2 Connector     |                        |
-|  |  (httpx, async,       |  +------------------+  |
-|  |   connection pool,    |  |  Indicator Engine |  |
-|  |   retry + backoff)    +-->  30 indicators   |  |
-|  +-----------------------+  |  YAML-driven     |  |
-|                             +--------+---------+  |
-|  +--------------+  +------------+    |            |
-|  | Alert Engine |  | DQ Engine  |<---+            |
-|  +--------------+  +------------+                 |
-|  +--------------+  +------------+                 |
-|  | AI Insights  |  |  Exports   |                 |
-|  | (optional)   |  | Excel/PDF  |                 |
-|  +--------------+  +------------+                 |
-+--------------------------------------------------+
-                   |
-                   |  DHIS2 Web API (analytics, dataValueSets,
-                   |  organisationUnits, completeDataSetRegistrations)
-                   v
-          +---------------------+
-          |  Uganda HMIS        |
-          |  DHIS2 Instance     |
-          +---------------------+
++-------------------------------------------------------------+
+|                     DHIS2 Instance                          |
+|              (Uganda National HIS Server)                   |
++----------------------+--------------------------------------+
+                       |  Secure API (httpx + connection pool)
+                       v
++-------------------------------------------------------------+
+|              PMTCT Analytics Engine                          |
+|  +----------+ +----------+ +----------+ +--------------+   |
+|  |Indicators| |Data Qual.| |  Alerts  | |  AI Insights |   |
+|  |  Engine  | |  Scoring | |  System  | |   (LLM API)  |   |
+|  +----------+ +----------+ +----------+ +--------------+   |
+|  +----------+ +----------+ +----------+ +--------------+   |
+|  |  Trends  | | Supply   | |  RBAC &  | |   Report     |   |
+|  | Analysis | |  Chain   | |  Audit   | |  Generation  |   |
+|  +----------+ +----------+ +----------+ +--------------+   |
++----------------------+--------------------------------------+
+                       |  HTMX + Chart.js + Tailwind CSS
+                       v
++-------------------------------------------------------------+
+|                  Web Dashboard (Browser)                     |
+|         Program Managers . DHOs . Partners . MoH            |
++-------------------------------------------------------------+
 ```
 
-**Key design decisions:**
+</div>
 
-- **Stateless.** Data is fetched on demand from DHIS2 and not stored locally. No database.
-- **Session-only credentials.** Users authenticate with their DHIS2 account. Credentials exist in server memory for the session duration only and are cleared on logout or expiry.
-- **Config-driven.** Indicator definitions, data element mappings, alert thresholds, scoring weights, and RBAC rules all live in YAML files under `config/`. Adapting to a different DHIS2 instance means editing config, not code.
-- **Single-worker MVP.** Sessions, caches, and rate-limit state are process-local. The startup script enforces `WEB_CONCURRENCY=1` and logs a warning if someone tries to change it.
+## ✨ Key Features
 
----
+### 📊 Analytics & Monitoring
+- **30 PMTCT indicators** with machine-readable formulas covering testing, treatment, and retention cascades
+- **49 DHIS2 data element mappings** pre-configured for Uganda's HMIS
+- **Trend analysis** with temporal visualizations for spotting coverage drift
+- **Composite risk scoring** with configurable weights for multi-dimensional facility assessment
 
-## Tech Stack
+### 🔔 Alerting & Intelligence
+- **Automated threshold alerts** for coverage drops, stockouts, data quality issues, and missed appointments
+- **AI-powered narrative insights** via vendor-neutral LLM integration -- turns numbers into plain-language recommendations
+- **Data quality scoring** that flags reporting gaps, outliers, and consistency issues before they corrupt analysis
 
-| Layer | Technology |
-|---|---|
-| Backend | FastAPI 0.115, Python 3.11, httpx (async, HTTP/2, connection pooling) |
-| Data | pandas, numpy, pydantic, pydantic-settings |
-| Frontend | Jinja2 templates, HTMX partials, Chart.js, Tailwind CSS |
-| Exports | openpyxl (Excel), WeasyPrint (PDF) |
-| AI (optional) | Vendor-neutral -- Anthropic, OpenAI, or Azure OpenAI via raw httpx |
-| Auth | DHIS2-delegated (Basic Auth + PAT), server-side sessions, CSRF tokens |
-| Security | Rate limiting, audit logging, security headers (CSP, HSTS, X-Frame-Options) |
-| Deployment | Docker (multi-stage), Render, GitHub Actions CI/CD |
+### 🏥 Operational Tools
+- **Org-unit hierarchy navigation** -- drill from national to regional to district to facility
+- **Supply chain monitoring** with enriched reporting on commodity availability
+- **Excel & PDF report generation** (openpyxl + WeasyPrint) for offline sharing and formal reporting
+- **UBOS population denominators** for accurate coverage rate calculations
 
----
+### 🔒 Enterprise-Grade Security
+- **DHIS2 passthrough authentication** -- no separate credentials to manage
+- **Role-based access control** (RBAC) aligned with DHIS2 user roles
+- **CSRF protection, rate limiting, and audit logging** out of the box
+- **Stateless by design** -- zero PHI stored locally; data lives in DHIS2
 
-## Quick Start
+## 🏗 Architecture
 
-### Local development
+The system follows three core architectural principles:
+
+| Principle | What It Means |
+|:--|:--|
+| **Stateless** | All data is fetched on-demand from DHIS2. Nothing is persisted locally. The tool is a pure analytics lens over existing infrastructure. |
+| **Session-Only** | Users authenticate via DHIS2 credentials and work within expiring application sessions. No user database to maintain. |
+| **Config-Driven** | Indicators, mappings, thresholds, and scoring weights live in YAML files -- change program logic without touching code. |
+
+### Tech Stack
+
+| Layer | Technology | Purpose |
+|:--|:--|:--|
+| **Backend** | FastAPI, httpx, pandas, pydantic | API routing, async DHIS2 connectivity, data transformation, validation |
+| **Frontend** | Jinja2, HTMX, Chart.js, Tailwind CSS | Server-rendered pages with reactive updates -- no heavy SPA framework |
+| **Reports** | openpyxl, WeasyPrint | Programmatic Excel workbook and PDF generation |
+| **AI** | Vendor-neutral LLM integration | Natural language insight generation from structured analytics |
+| **Infra** | Docker, Render, GitHub Actions | Containerized deployment with CI/CD and health checks |
+
+## 🚀 Quick Start
 
 ```bash
-# Clone
+# 1. Clone the repository
 git clone https://github.com/Isaac25-lgtm/PMTCT-Analytics-Tool.git
 cd PMTCT-Analytics-Tool
 
-# Configure
+# 2. Configure environment
 cp .env.example .env
-# Edit .env -- at minimum set DHIS2_BASE_URL to your DHIS2 instance
+# Edit .env with your DHIS2 instance URL and credentials
 
-# Install
+# 3. Install dependencies
 pip install -r requirements.txt -r requirements-dev.txt -r requirements-export.txt
 
-# Run
+# 4. Launch the application
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-Open `http://localhost:8000` and log in with your DHIS2 credentials.
+Open `http://localhost:8000` and authenticate with your DHIS2 credentials.
 
 ### Docker
 
 ```bash
-docker compose up --build
+docker-compose up --build
 ```
 
-The app will be available at `http://localhost:8000` with hot-reload enabled via volume mounts.
+## ⚙️ Configuration
 
----
+All program logic is externalized into YAML configuration files under `config/`:
 
-## Configuration
+| File | Description |
+|:--|:--|
+| `mappings.yaml` | 49 data element UIDs + 5 category option combo UIDs for AN21-POS extraction |
+| `indicators.yaml` | 30 indicator definitions with machine-readable formulas |
+| `populations.yaml` | UBOS district population template for coverage denominators |
+| `scoring.yaml` | Composite risk score weights (configurable per program priority) |
+| `thresholds.yaml` | Alert thresholds for coverage, stock, data quality, and missed appointments |
+| `cache.yaml` | In-memory caching rules for DHIS2 response optimization |
+| `rbac.yaml` | Role-based access control mappings |
+| `production.yaml` | Production environment overrides |
 
-All DHIS2 metadata and application behaviour is controlled through YAML files in `config/`:
+> **Adapt to any country:** Replace the YAML mappings with your national DHIS2 metadata UIDs to deploy this tool for any DHIS2-based health information system.
 
-| File | Purpose |
-|---|---|
-| `mappings.yaml` | 49 data element UIDs + 5 category option combo UIDs mapped to internal codes |
-| `indicators.yaml` | 30 indicator definitions with formulas, targets, and result types |
-| `populations.yaml` | UBOS district population estimates for coverage denominators |
-| `commodities.yaml` | Tracer commodity registry (HBsAg kits, duo kits, etc.) with reorder levels |
-| `alert_thresholds.yaml` | Coverage, stockout, data quality, and missed appointment thresholds |
-| `dq_rules.yaml` | Data quality validation rules (consistency, completeness, outliers) |
-| `scoring.yaml` | Composite risk score weights (12 dimensions, must sum to 1.0) |
-| `rbac.yaml` | Role definitions, permission mappings, and rate limit rules |
-| `cache.yaml` | TTL settings for different cache categories and connection pool tuning |
+## 🌍 Deployment
 
-**Adapting to a different DHIS2 instance:** Update the UIDs in `mappings.yaml` to match the target instance's data element and category option combo identifiers. The indicator formulas reference internal codes (e.g., `AN01a`, `SS40c`), not raw UIDs, so only the mapping layer needs to change.
+The tool is production-ready for cloud deployment on **Render** with included configuration:
 
----
+- `render.yaml` -- Render blueprint for one-click deployment
+- `Dockerfile` -- Multi-stage container build
+- `docker-compose.yml` -- Local development orchestration
+- `.github/workflows/` -- CI pipeline with automated testing
+- `scripts/healthcheck.sh` -- Container health monitoring
+- `scripts/start.sh` -- Production startup with `PORT` environment variable support
 
-## Deployment
+> Render injects `PORT` automatically. The startup script honors it and falls back to `8000` locally. Keep secrets (`SECRET_KEY`, `LLM_API_KEY`) in environment variables -- never in the repository.
 
-### Render (primary target)
+See **[docs/DEPLOYMENT.md](docs/DEPLOYMENT.md)** for complete operational guidance.
 
-The repo includes a `render.yaml` Blueprint that defines production and staging services:
+## 📚 Documentation
 
-```
-Production: Docker service on main branch, standard plan
-Staging: Docker service on main branch by default, starter plan
-SECRET_KEY is auto-generated by Render
-```
+| Document | Description |
+|:--|:--|
+| [User Guide](docs/USER_GUIDE.md) | End-user walkthrough for navigating the dashboard |
+| [API Reference](docs/API_REFERENCE.md) | REST endpoint specifications for integrators |
+| [Developer Guide](docs/DEVELOPER_GUIDE.md) | Setup, contribution workflow, and codebase orientation |
+| [Indicator Catalog](docs/INDICATOR_CATALOG.md) | Full definitions of all 30 PMTCT indicators |
+| [Configuration Guide](docs/CONFIGURATION.md) | YAML schema documentation and customization instructions |
+| [Deployment Guide](docs/DEPLOYMENT.md) | Docker, Render, health checks, and operations |
 
-If you later create a dedicated `staging` branch in GitHub, update the staging
-service in `render.yaml` to point at that branch.
-
-Required environment variables on Render:
-- `DHIS2_BASE_URL` -- Target DHIS2 instance (e.g., `https://hmis.health.go.ug`)
-- `SECRET_KEY` -- Auto-generated via `render.yaml`
-- `LLM_API_KEY` + `LLM_MODEL` -- Optional, for AI insights
-
-The Dockerfile uses a multi-stage build, runs as a non-root user, includes a health check (`/health/ready`), and uses `tini` as the init process.
-
-### CI/CD
-
-GitHub Actions workflows in `.github/workflows/`:
-- **CI** -- Linting (ruff), type checking (mypy), unit tests, API tests, integration tests, Docker build smoke test, and security scanning (bandit, pip-audit)
-- **Deploy** -- Triggers Render deployment via API after CI passes, polls for completion, and runs a health check against the live URL
-
-Required GitHub Secrets for deployment:
-- `RENDER_API_KEY`
-- `RENDER_SERVICE_ID_PROD`
-- `RENDER_SERVICE_ID_STAGING`
-
-See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for full operational guidance.
-
----
-
-## Project Structure
+## 📁 Project Structure
 
 ```
 PMTCT-Analytics-Tool/
 |-- app/
-|   |-- main.py                  # FastAPI factory, lifespan, middleware wiring
-|   |-- api/
-|   |   |-- deps.py              # Dependency injection (session, calculator)
-|   |   |-- middleware.py         # Session, CSRF, rate limit, security headers, logging
-|   |   |-- schemas.py           # Shared API schemas
-|   |   +-- routes/
-|   |       |-- auth.py          # DHIS2 login/logout/status/refresh
-|   |       |-- indicators.py    # Indicator calculation endpoints
-|   |       |-- reports.py       # WHO scorecards, cascades, comparisons
-|   |       |-- data_quality.py  # DQ checks and scoring
-|   |       |-- alerts.py        # Alert evaluation and summaries
-|   |       |-- trends.py        # Multi-period trend analysis
-|   |       |-- insights.py      # AI-generated insight endpoints
-|   |       |-- exports.py       # Excel and PDF export
-|   |       |-- org_units.py     # Hierarchy navigation and search
-|   |       |-- pages.py         # HTMX page routes
-|   |       |-- health.py        # Liveness, readiness, startup, cache, stats
-|   |       +-- admin.py         # Diagnostics and config validation
-|   |-- auth/                    # DHIS2 auth, RBAC, roles, permissions, audit, rate limiting
-|   |-- connectors/              # DHIS2 API connector (async, pooled, retry) + cached wrapper
-|   |-- core/                    # Config, session manager, cache, connection pool, logging
-|   |-- indicators/              # Registry, calculator, models, cached calculator
-|   |-- services/                # AI insights, alerts, DQ, trends, exports, LLM providers
-|   |-- supply/                  # Commodity tracking, forecasting, validation, alerts
-|   |-- reports/                 # Excel and PDF generators
-|   |-- admin/                   # Config validator, system diagnostics
-|   |-- analytics/               # Anomaly detection, risk scoring, trajectory analysis
-|   |-- templates/               # 14 Jinja2 pages + 25 HTMX component partials
-|   |-- utils/                   # Temp file management
-|   +-- validation/              # Validation rule engine
-|-- config/                      # 12 YAML configuration files
-|-- static/                      # CSS + JS (Tailwind, Chart.js, HTMX wiring)
-|-- scripts/                     # start.sh, healthcheck.sh, validate_config.py
-|-- tests/                       # Unit, API, and integration test suites
-|-- docs/                        # User guide, API reference, developer guide, deployment
-|-- Dockerfile                   # Multi-stage production image
-|-- docker-compose.yml           # Local development with hot-reload
-|-- render.yaml                  # Render Blueprint (prod + staging)
-|-- requirements.txt             # Runtime dependencies
-|-- requirements-dev.txt         # Test dependencies
-+-- requirements-export.txt      # PDF/Excel export dependencies
+|   |-- api/              # FastAPI route handlers
+|   |-- auth/             # DHIS2 authentication & session management
+|   |-- connectors/       # DHIS2 API client (pooled, async)
+|   |-- core/             # Shared config, caching, middleware
+|   |-- indicators/       # Indicator calculation engine
+|   |-- reports/          # Excel & PDF report generation
+|   |-- services/         # Business logic (alerts, DQ, trends, AI)
+|   |-- templates/        # Jinja2 HTML templates + HTMX partials
+|   +-- main.py           # Application entrypoint
+|-- config/               # YAML-driven program configuration
+|-- docs/                 # End-user & developer documentation
+|-- scripts/              # Startup & health check scripts
+|-- static/               # CSS, JS, and static assets
+|-- tests/                # pytest test suite
+|-- .github/workflows/    # CI/CD pipeline
+|-- Dockerfile            # Container build
+|-- docker-compose.yml    # Local orchestration
+|-- render.yaml           # Render deployment blueprint
++-- requirements*.txt     # Dependency manifests
 ```
 
----
+## 🤝 Contributing
 
-## API Overview
-
-The application exposes endpoints across 12 route groups. All data-fetching endpoints require DHIS2 authentication. Many report endpoints serve both JSON (for API consumers) and HTMX partials (for the browser UI) depending on the `HX-Request` header.
-
-| Route Group | Prefix | Auth | Purpose |
-|---|---|---|---|
-| Health | `/health/*` | No | Liveness, readiness, startup, cache stats |
-| Auth | `/auth/*` | No | Login, logout, session status, refresh |
-| Indicators | `/api/indicators/*` | Yes | List definitions, calculate single or all |
-| Reports | `/api/reports/*` | Yes | WHO scorecards, cascades, comparisons |
-| Data Quality | `/api/data-quality/*` | Yes | DQ checks, scoring, rule-based validation |
-| Alerts | `/api/alerts/*` | Yes | Threshold evaluation, alert summaries |
-| Trends | `/api/trends/*` | Yes | Multi-period directional analysis |
-| AI Insights | `/api/insights/*` | Yes | LLM-generated narratives and recommendations |
-| Exports | `/api/exports/*` | Yes | Excel and PDF report downloads |
-| Org Units | `/api/org-units/*` | Yes | Hierarchy navigation, search, drill-down |
-| Admin | `/admin/*` | Yes | Config validation, diagnostics |
-| Pages | `/*` | Mixed | Browser-facing HTMX page routes |
-
-See [docs/API_REFERENCE.md](docs/API_REFERENCE.md) for full endpoint documentation.
-
----
-
-## Security Model
-
-- **No local user database.** Authentication is delegated entirely to DHIS2 -- the app verifies credentials against `/api/me` on the target instance.
-- **Server-side sessions.** Credentials are stored in server memory only, never in cookies or local storage. The browser receives a signed, httponly, secure session cookie that references the server-side session.
-- **RBAC from DHIS2 authorities.** The app maps DHIS2 user authorities to four internal roles (viewer, analyst, data_manager, admin) and gates features accordingly.
-- **CSRF protection.** State-changing requests require a session-bound CSRF token with constant-time comparison.
-- **Rate limiting.** Per-session and per-IP limits for API calls, exports, AI insights, and login attempts.
-- **Audit logging.** Login, logout, session expiry, rate-limit events, and sensitive operations are logged with user ID, IP, and timestamps.
-- **Security headers.** CSP, X-Frame-Options (DENY), X-Content-Type-Options, Referrer-Policy, and Permissions-Policy on every response.
-
----
-
-## Testing
+Contributions are welcome. Please read the [Developer Guide](docs/DEVELOPER_GUIDE.md) for setup instructions and coding conventions before submitting a pull request.
 
 ```bash
-# Unit tests (no external dependencies)
-pytest tests/unit -v
-
-# API tests (FastAPI TestClient, mocked DHIS2)
-pytest tests/api -v
-
-# Integration tests (requires live DHIS2 -- excluded by default)
-pytest tests/integration -v -m integration
-
-# All tests except integration
+# Run tests
 pytest
+
+# Run with coverage
+pytest --cov=app --cov-report=html
 ```
 
-The test suite covers unit tests (calculator, cache, connector, RBAC, registry, session, alerts, DQ, supply chain, AI insights), API route tests (all 12 route groups), and integration tests with a mock DHIS2 server.
+## 📜 License
+
+This project is open source under the [MIT License](LICENSE).
 
 ---
 
-## Documentation
+<div align="center">
 
-| Document | Description |
-|---|---|
-| [User Guide](docs/USER_GUIDE.md) | End-user walkthrough of all features |
-| [API Reference](docs/API_REFERENCE.md) | Full endpoint documentation with request/response examples |
-| [Developer Guide](docs/DEVELOPER_GUIDE.md) | Architecture, code conventions, contribution workflow |
-| [Indicator Catalog](docs/INDICATOR_CATALOG.md) | All 30 indicators with formulas, data sources, and targets |
-| [Configuration Guide](docs/CONFIGURATION.md) | YAML config files, field-by-field reference |
-| [Deployment Guide](docs/DEPLOYMENT.md) | Docker, Render, health checks, operational runbook |
+**Built for Uganda's health data ecosystem**
 
----
+*Transforming DHIS2 data into decisions that save lives*
 
-## Known Limitations
-
-- **Single-instance only.** Sessions and caches are in-memory. Scaling to multiple workers or instances requires migrating to Redis or a database-backed session store.
-- **Reporting completeness** indicator is not yet wired to HMIS dataset UIDs and will show as unavailable.
-- **Population denominators** require manual configuration in `config/populations.yaml` using UBOS district projections.
-- **AI insights** are optional and require an LLM API key. Without one, the system falls back to rule-based summaries.
-
----
-
-## License
-
-This project is developed for the Uganda Ministry of Health PMTCT Triple Elimination programme.
+</div>

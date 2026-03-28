@@ -193,7 +193,7 @@ jobs:
             -e LOG_LEVEL=WARNING \
             -e LOG_FORMAT=console \
             -e SECRET_KEY=test-secret-key \
-            -e DHIS2_BASE_URL=https://play.dhis2.org/40.4.0 \
+            -e DHIS2_BASE_URL=https://hmis.health.go.ug \
             -p 8000:8000 \
             pmtct-app:test
 

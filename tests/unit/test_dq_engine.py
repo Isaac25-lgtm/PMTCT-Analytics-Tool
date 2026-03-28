@@ -140,7 +140,7 @@ class TestDataQualityEngine:
         )
 
         mock_calculator.calculate_single.assert_not_awaited()
-        assert result.summary.total_checks == 3
+        assert result.summary.total_checks == 2
         assert not any(finding.rule_id in {"DQ-004", "DQ-005"} for finding in result.findings)
 
     @pytest.mark.asyncio

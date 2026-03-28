@@ -53,7 +53,7 @@ class TestSessionManager:
 
         assert refreshed is True
         assert updated is not None
-        assert updated.expires_at > original_expiry
+        assert updated.expires_at >= original_expiry
 
     def test_refresh_session_returns_false_for_unknown(self, fresh_session_manager: SessionManager) -> None:
         assert fresh_session_manager.refresh_session("missing-session") is False

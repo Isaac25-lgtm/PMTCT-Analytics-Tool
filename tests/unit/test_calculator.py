@@ -110,7 +110,7 @@ class TestCalculatorResults:
         calculator = IndicatorCalculator(session=valid_session, population_data=population_data)
 
         with patch.object(calculator, "_registry", loaded_registry):
-            with patch("app.indicators.calculator.DHIS2Connector", return_value=mock_connector):
+            with patch("app.indicators.calculator.build_cached_connector", return_value=mock_connector):
                 result_set = await calculator.calculate_all(
                     org_unit="akV6429SUqu",
                     period="202401",
@@ -132,7 +132,7 @@ class TestCalculatorResults:
         calculator = IndicatorCalculator(session=valid_session, population_data=population_data)
 
         with patch.object(calculator, "_registry", loaded_registry):
-            with patch("app.indicators.calculator.DHIS2Connector", return_value=mock_connector):
+            with patch("app.indicators.calculator.build_cached_connector", return_value=mock_connector):
                 result = await calculator.calculate_single(
                     indicator_id="VAL-02",
                     org_unit="akV6429SUqu",

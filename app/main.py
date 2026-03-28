@@ -53,6 +53,12 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Manage startup and shutdown tasks for the application."""
     settings = get_settings()
+    if settings.app_env == "production" and settings.secret_key == "change-me-to-a-random-secret-key":
+        logger.critical(
+            "FATAL: SECRET_KEY is not set for production. "
+            "Set the SECRET_KEY environment variable to a random value."
+        )
+        raise SystemExit(1)
     configure_logging(level=settings.log_level, format=settings.log_format)
     logger.info("Starting %s v%s", settings.app_name, settings.app_version)
 
@@ -111,7 +117,14 @@ def create_app() -> FastAPI:
     if settings.debug:
         app.add_middleware(
             CORSMiddleware,
-            allow_origins=["*"],
+            allow_origins=[
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://localhost:8000",
+                "http://127.0.0.1:3000",
+                "http://127.0.0.1:5173",
+                "http://127.0.0.1:8000",
+            ],
             allow_credentials=True,
             allow_methods=["*"],
             allow_headers=["*"],

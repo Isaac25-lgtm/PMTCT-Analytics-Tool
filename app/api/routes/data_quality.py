@@ -122,10 +122,10 @@ async def run_dq_checks(
         )
         result = payload
     except Exception as exc:
-        logger.error("DQ check error: %s", exc)
+        logger.exception("DQ check error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error running DQ checks: {exc}",
+            detail="Data quality check failed",
         ) from exc
 
     return DQResultResponse(
@@ -155,10 +155,10 @@ async def get_dq_score(
             ttl=get_cache_ttl("data_quality"),
         )
     except Exception as exc:
-        logger.error("DQ score error: %s", exc)
+        logger.exception("DQ score error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error calculating DQ score: {exc}",
+            detail="Data quality score calculation failed",
         ) from exc
 
     return DQScoreResponse(**score_data)

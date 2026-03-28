@@ -148,6 +148,16 @@ def download_response(file_bytes: bytes, filename: str, media_type: str) -> Stre
     )
 
 
+def export_failure_detail(request_format: str) -> str:
+    """Return a generic export failure message without leaking internals."""
+    normalized = request_format.lower()
+    if normalized == "xlsx":
+        return "Excel export failed"
+    if normalized == "pdf":
+        return "PDF export failed"
+    return "Export failed"
+
+
 def enforce_export_access(
     *,
     request_format: str,
@@ -274,8 +284,11 @@ async def export_scorecard(
             period_label or resolved_period,
         )
     except ExportDependencyError as exc:
-        logger.error("Export dependency error: %s", exc)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+        logger.exception("Scorecard export dependency error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=export_failure_detail(request_body.format),
+        ) from exc
     except Exception as exc:
         logger.exception("Scorecard export failed: %s", exc)
         raise HTTPException(
@@ -370,8 +383,11 @@ async def export_cascade(
             request_body.period,
         )
     except ExportDependencyError as exc:
-        logger.error("Export dependency error: %s", exc)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+        logger.exception("Cascade export dependency error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=export_failure_detail(request_body.format),
+        ) from exc
     except Exception as exc:
         logger.exception("Cascade export failed: %s", exc)
         raise HTTPException(
@@ -449,8 +465,11 @@ async def export_supply(
             period_label,
         )
     except ExportDependencyError as exc:
-        logger.error("Export dependency error: %s", exc)
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(exc)) from exc
+        logger.exception("Supply export dependency error")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=export_failure_detail(request_body.format),
+        ) from exc
     except Exception as exc:
         logger.exception("Supply export failed: %s", exc)
         raise HTTPException(

@@ -29,6 +29,135 @@ class CalculationError(Exception):
     """Raised when indicator calculation fails."""
 
 
+class SafeMathParser:
+    """Recursive-descent parser for simple arithmetic expressions."""
+
+    def __init__(self, expression: str):
+        self._expression = expression
+        self._tokens = self._tokenize(expression)
+        self._index = 0
+
+    @classmethod
+    def parse(cls, expression: str) -> float:
+        """Parse and evaluate a math expression safely."""
+        parser = cls(expression)
+        if not parser._tokens:
+            raise CalculationError("Empty formula")
+
+        result = parser._parse_expression()
+        if parser._current_token() is not None:
+            raise CalculationError("Unexpected token")
+        return result
+
+    def _tokenize(self, expression: str) -> List[str]:
+        tokens: List[str] = []
+        index = 0
+
+        while index < len(expression):
+            char = expression[index]
+
+            if char.isspace():
+                index += 1
+                continue
+
+            if char in "+-*/()":
+                tokens.append(char)
+                index += 1
+                continue
+
+            if char.isdigit() or char == ".":
+                start = index
+                dot_count = 0
+                digit_count = 0
+
+                while index < len(expression) and (
+                    expression[index].isdigit() or expression[index] == "."
+                ):
+                    if expression[index] == ".":
+                        dot_count += 1
+                    else:
+                        digit_count += 1
+                    index += 1
+
+                if dot_count > 1 or digit_count == 0:
+                    raise CalculationError(f"Invalid number in formula: {expression}")
+
+                tokens.append(expression[start:index])
+                continue
+
+            raise CalculationError(f"Invalid formula: {expression}")
+
+        return tokens
+
+    def _current_token(self) -> str | None:
+        if self._index >= len(self._tokens):
+            return None
+        return self._tokens[self._index]
+
+    def _consume(self, expected: str | None = None) -> str:
+        token = self._current_token()
+        if token is None:
+            raise CalculationError("Unexpected end of formula")
+        if expected is not None and token != expected:
+            raise CalculationError(f"Expected '{expected}'")
+        self._index += 1
+        return token
+
+    def _parse_expression(self) -> float:
+        value = self._parse_term()
+
+        while self._current_token() in {"+", "-"}:
+            operator = self._consume()
+            right = self._parse_term()
+            if operator == "+":
+                value += right
+            else:
+                value -= right
+
+        return value
+
+    def _parse_term(self) -> float:
+        value = self._parse_factor()
+
+        while self._current_token() in {"*", "/"}:
+            operator = self._consume()
+            right = self._parse_factor()
+            if operator == "*":
+                value *= right
+            else:
+                if right == 0:
+                    raise CalculationError("Division by zero")
+                value /= right
+
+        return value
+
+    def _parse_factor(self) -> float:
+        token = self._current_token()
+        if token is None:
+            raise CalculationError("Unexpected end of formula")
+
+        if token == "-":
+            self._consume("-")
+            return -self._parse_factor()
+
+        if token == "(":
+            self._consume("(")
+            value = self._parse_expression()
+            self._consume(")")
+            return value
+
+        self._consume()
+        try:
+            return float(token)
+        except ValueError as exc:
+            raise CalculationError(f"Invalid token: {token}") from exc
+
+
+def parse_math_expression(expression: str) -> float:
+    """Evaluate a simple arithmetic expression without eval()."""
+    return SafeMathParser.parse(expression)
+
+
 class IndicatorCalculator:
     """
     Calculates PMTCT Triple Elimination indicators.
@@ -367,12 +496,10 @@ class IndicatorCalculator:
             )
 
         try:
-            allowed_chars = set("0123456789.+-*/() ")
-            if not set(working_formula).issubset(allowed_chars):
-                raise CalculationError(f"Invalid formula: {formula}")
-
-            result = eval(working_formula, {"__builtins__": {}}, {})
+            result = parse_math_expression(working_formula)
             return float(result), elements_used
+        except CalculationError:
+            raise
         except Exception as exc:
             raise CalculationError(f"Formula evaluation failed: {exc}") from exc
 
@@ -402,7 +529,6 @@ class IndicatorCalculator:
         org_unit_name: Optional[str],
     ) -> IndicatorResult:
         """Calculate reporting completeness using DHIS2 API."""
-        # TODO: Configure actual dataset UIDs
         return IndicatorResult(
             indicator_id=indicator.id,
             indicator_name=indicator.name,
@@ -412,7 +538,9 @@ class IndicatorCalculator:
             period=period,
             result_type=ResultType.PERCENTAGE,
             is_valid=False,
-            error_message="TODO: Configure dataset UIDs for completeness check",
+            # TODO(PMTCT): Wire up HMIS 105/033b dataset UIDs for completeness.
+            # See config/mappings.yaml for dataset UID placeholders.
+            error_message="Reporting completeness data is not yet available for this instance",
         )
 
     async def _calculate_dou(

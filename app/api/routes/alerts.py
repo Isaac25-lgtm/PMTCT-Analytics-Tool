@@ -214,12 +214,15 @@ async def get_alerts(
             include_acknowledged=include_acknowledged,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid alert request",
+        ) from exc
     except Exception as exc:
-        logger.error("Alert evaluation error: %s", exc)
+        logger.exception("Alert evaluation error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error evaluating alerts: {exc}",
+            detail="Alert evaluation failed",
         ) from exc
 
     return serialise_result(filtered)
@@ -250,12 +253,15 @@ async def get_alert_summary(
             include_acknowledged=include_acknowledged,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)) from exc
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Invalid alert summary request",
+        ) from exc
     except Exception as exc:
-        logger.error("Alert summary error: %s", exc)
+        logger.exception("Alert summary error")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error getting alert summary: {exc}",
+            detail="Alert summary generation failed",
         ) from exc
 
     return serialise_summary(filtered.summary)

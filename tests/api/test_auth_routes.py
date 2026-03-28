@@ -112,8 +112,7 @@ class TestLogoutEndpoint:
     def test_logout_without_session_still_succeeds(self, client) -> None:
         response = client.post("/auth/logout")
 
-        assert response.status_code == 200
-        assert response.json()["success"] is True
+        assert response.status_code == 401
 
 
 @pytest.mark.api

@@ -90,12 +90,18 @@ class TestAdminJsonRoutes:
         assert any(item["is_current"] for item in data["sessions"])
 
     def test_cannot_terminate_current_session(self, admin_authenticated_client, admin_session) -> None:
-        response = admin_authenticated_client.post(f"/admin/sessions/{admin_session.session_id}/terminate")
+        response = admin_authenticated_client.post(
+            f"/admin/sessions/{admin_session.session_id}/terminate",
+            headers={"X-CSRF-Token": admin_session.user_data["csrf_token"]},
+        )
 
         assert response.status_code == 400
 
-    def test_clear_all_caches(self, admin_authenticated_client) -> None:
-        response = admin_authenticated_client.post("/admin/cache/clear")
+    def test_clear_all_caches(self, admin_authenticated_client, admin_session) -> None:
+        response = admin_authenticated_client.post(
+            "/admin/cache/clear",
+            headers={"X-CSRF-Token": admin_session.user_data["csrf_token"]},
+        )
 
         assert response.status_code == 200
         data = response.json()

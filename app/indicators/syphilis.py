@@ -1,3 +1,3 @@
 """Syphilis indicator computations."""
 
-raise NotImplementedError
+pass

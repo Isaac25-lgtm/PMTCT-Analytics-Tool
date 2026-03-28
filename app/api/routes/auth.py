@@ -243,7 +243,7 @@ async def auth_status(request: Request) -> AuthStatusResponse:
 
 
 @router.post("/refresh")
-async def refresh_session(request: Request) -> dict[str, Optional[str]]:
+async def refresh_session(request: Request) -> dict[str, bool | str | None]:
     """Refresh session expiry time for the active browser session."""
     session_manager = get_session_manager()
     session = getattr(request.state, "session", None)

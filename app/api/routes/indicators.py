@@ -289,7 +289,7 @@ async def calculate_indicators(
         logger.exception("Calculation failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Calculation failed: {exc}",
+            detail="Calculation failed",
         ) from exc
 
     if is_htmx_request(request):
@@ -355,7 +355,7 @@ async def calculate_single_indicator(
         logger.exception("Single indicator calculation failed: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Calculation failed: {exc}",
+            detail="Calculation failed",
         ) from exc
 
     return result.model_dump()

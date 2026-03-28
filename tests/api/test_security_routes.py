@@ -47,11 +47,11 @@ class TestSecurityHeaders:
 
 @pytest.mark.api
 class TestCSRFProtection:
-    def test_refresh_requires_csrf_header(self, authenticated_client) -> None:
+    def test_refresh_is_csrf_exempt(self, authenticated_client) -> None:
         response = authenticated_client.post("/auth/refresh")
 
-        assert response.status_code == 403
-        assert response.json()["detail"] == "CSRF validation failed"
+        assert response.status_code == 200
+        assert response.json()["success"] is True
 
 
 @pytest.mark.api

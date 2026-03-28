@@ -21,19 +21,7 @@ openpyxl==3.1.5
 weasyprint==63.1
 
 # Security & sessions
-python-jose[cryptography]==3.3.0
-passlib[bcrypt]==1.7.4
 itsdangerous==2.2.0
-
-# AI integration (vendor-neutral)
-openai==1.58.1
 
 # Environment
 python-dotenv==1.0.1
-
-# Testing
-pytest==8.3.4
-pytest-asyncio==0.25.0
-
-# Logging
-loguru==0.7.3

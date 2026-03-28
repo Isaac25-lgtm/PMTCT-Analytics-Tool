@@ -12,6 +12,7 @@ import pytest
 from app.core.cache import InMemoryCache, SessionCache
 from app.core.cache_keys import make_key
 from app.indicators.models import IndicatorResultSet
+from app.indicators.registry import IndicatorRegistry
 from app.supply.commodities import (
     get_mapped_commodities,
     get_thresholds,
@@ -420,6 +421,8 @@ async def test_supply_service_uses_raw_value_fallback_when_indicator_missing(
     valid_session,
 ):
     """Raw DHIS2 values should populate the snapshot when indicator results are absent."""
+    IndicatorRegistry._instance = None
+    IndicatorRegistry._initialized = False
     empty_result_set = IndicatorResultSet(
         org_unit_uid="ou123",
         org_unit_name="Test District",

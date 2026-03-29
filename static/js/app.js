@@ -730,12 +730,66 @@
         document.body.classList.toggle("overflow-hidden", !!show);
     };
 
+    // -- Lightweight markdown to HTML for AI insight content --
+    function renderMarkdown(root) {
+        root.querySelectorAll("[data-markdown-content]").forEach(function (el) {
+            if (el.dataset.markdownRendered === "true") return;
+            el.dataset.markdownRendered = "true";
+
+            var text = el.textContent || "";
+            // Escape HTML entities first
+            var html = text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;");
+
+            // Headers: ### Header
+            html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+            html = html.replace(/^## (.+)$/gm, "<h3>$1</h3>");
+
+            // Bold: **text**
+            html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+            // Italic: *text*
+            html = html.replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, "<em>$1</em>");
+
+            // Numbered lists: 1. item
+            html = html.replace(/^(\d+)\.\s+(.+)$/gm, "<li>$2</li>");
+            html = html.replace(/(<li>.*<\/li>\n?)+/g, function (match) {
+                return "<ol>" + match + "</ol>";
+            });
+
+            // Bullet lists: - item
+            html = html.replace(/^[-*]\s+(.+)$/gm, "<li>$1</li>");
+            html = html.replace(/(<li>.*<\/li>\n?)+/g, function (match) {
+                if (match.indexOf("<ol>") === -1) {
+                    return "<ul>" + match + "</ul>";
+                }
+                return match;
+            });
+
+            // Paragraphs: double newlines
+            html = html.replace(/\n\n+/g, "</p><p>");
+            html = "<p>" + html + "</p>";
+
+            // Clean up empty paragraphs
+            html = html.replace(/<p>\s*<\/p>/g, "");
+            html = html.replace(/<p>\s*(<h3>)/g, "$1");
+            html = html.replace(/(<\/h3>)\s*<\/p>/g, "$1");
+            html = html.replace(/<p>\s*(<[ou]l>)/g, "$1");
+            html = html.replace(/(<\/[ou]l>)\s*<\/p>/g, "$1");
+
+            el.innerHTML = html;
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", () => {
         initialisePeriodControls(document);
         initialisePeriodRanges(document);
         initialisePeriodPresets(document);
         initialiseLogoutForm();
         startSessionRefresh();
+        renderMarkdown(document);
     });
 
     document.body.addEventListener("htmx:afterSwap", (event) => {
@@ -743,5 +797,6 @@
         initialisePeriodRanges(event.target);
         initialisePeriodPresets(event.target);
         initialiseLogoutForm();
+        renderMarkdown(event.target);
     });
 })();

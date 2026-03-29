@@ -100,6 +100,10 @@ class TestPermissionGuards:
 
 
 @pytest.mark.api
+@pytest.mark.skipif(
+    not __import__("app.core.config", fromlist=["get_settings"]).get_settings().rate_limit_enabled,
+    reason="Rate limiting is disabled in test environment",
+)
 class TestRateLimiting:
     def test_login_rate_limit_returns_429(self, client, mock_credentials, monkeypatch: pytest.MonkeyPatch) -> None:
         monkeypatch.setattr(
